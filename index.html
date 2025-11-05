@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora Nutricional</title>
+    <!-- Carrega Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Link para o arquivo CSS externo -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Configuração de fontes e cores do Tailwind (DEVE FICAR NO HEAD) -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-dark': '#1e40af', // Blue 700
+                        'primary-light': '#3b82f6', // Blue 500
+                        'accent': '#10b981', // Emerald 500
+                        'background': '#f9fafb', // Gray 50
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background min-h-screen p-4 sm:p-8 font-sans">
+
+    <div id="app" class="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl p-6 md:p-10">
+
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-primary-dark mb-2">Calculadora Nutricional</h1>
+            <p class="text-gray-500">Adicione ingredientes para calcular calorias, proteínas e carboidratos totais.</p>
+        </header>
+
+        <!-- Seção de Entrada de Ingredientes -->
+        <div class="bg-gray-50 p-5 rounded-xl mb-8 border border-gray-200">
+            <h2 class="text-2xl font-semibold text-primary-dark mb-4">Adicionar Ingrediente</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <!-- Nome do Ingrediente -->
+                <div class="md:col-span-2">
+                    <label for="ingredientName" class="block text-sm font-medium text-gray-700 mb-1">Nome do Ingrediente</label>
+                    <input type="text" id="ingredientName" placeholder="Ex: Arroz, Maçã, Peito de Frango" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary-light focus:border-primary-light transition duration-150">
+                </div>
+                <!-- Quantidade -->
+                <div>
+                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Quantidade</label>
+                    <input type="number" id="quantity" value="100" min="1" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary-light focus:border-primary-light transition duration-150">
+                </div>
+                <!-- Unidade -->
+                <div>
+                    <label for="unit" class="block text-sm font-medium text-gray-700 mb-1">Unidade</label>
+                    <select id="unit" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary-light focus:border-primary-light transition duration-150 bg-white">
+                        <option value="gramas">Gramas (g)</option>
+                        <option value="mililitros">Mililitros (ml)</option>
+                        <option value="xícaras">Xícaras</option>
+                        <option value="colheres de sopa">Colheres de Sopa</option>
+                        <option value="unidades">Unidades (un)</option>
+                    </select>
+                </div>
+                <!-- Botão Adicionar -->
+                <button onclick="addIngredient()" class="md:col-span-4 lg:col-span-1 p-3 bg-primary-light text-white font-semibold rounded-lg hover:bg-primary-dark transition duration-150 shadow-md hover:shadow-lg mt-2 md:mt-0">
+                    Adicionar à Receita
+                </button>
+            </div>
+        </div>
+
+        <!-- Seção de Lista de Ingredientes -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold text-primary-dark mb-4">Ingredientes Adicionados (<span id="ingredientCount">0</span>)</h2>
+            <div id="ingredientList" class="space-y-3">
+                <p id="noIngredientsMessage" class="text-gray-400 italic">Nenhum ingrediente adicionado. Adicione um ingrediente acima.</p>
+                <!-- Ingredientes serão inseridos aqui -->
+            </div>
+        </div>
+
+        <!-- Seção de Cálculo e Resultados -->
+        <div class="flex flex-col sm:flex-row gap-4 mb-8">
+            <button onclick="calculateTotal()" id="calculateButton" class="flex-grow p-4 bg-accent text-white font-bold text-lg rounded-xl hover:bg-green-700 transition duration-150 shadow-lg hover:shadow-xl flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed">
+                Calcular Nutrição Total
+            </button>
+        </div>
+
+        <!-- Seção de Resultados -->
+        <div id="resultsSection" class="hidden">
+            <h2 class="text-3xl font-bold text-primary-dark mb-5 text-center">Resultados Nutricionais Totais</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Card de Calorias -->
+                <div class="bg-red-50 p-6 rounded-xl border-b-4 border-red-500 shadow-md text-center">
+                    <p class="text-sm font-semibold text-red-600 uppercase">Calorias (Kcal)</p>
+                    <p id="totalCalories" class="text-4xl font-extrabold text-red-700 mt-2">0</p>
+                </div>
+                <!-- Card de Proteínas -->
+                <div class="bg-blue-50 p-6 rounded-xl border-b-4 border-blue-500 shadow-md text-center">
+                    <p class="text-sm font-semibold text-blue-600 uppercase">Proteínas (g)</p>
+                    <p id="totalProtein" class="text-4xl font-extrabold text-blue-700 mt-2">0.0</p>
+                </div>
+                <!-- Card de Carboidratos -->
+                <div class="bg-amber-50 p-6 rounded-xl border-b-4 border-amber-500 shadow-md text-center">
+                    <p class="text-sm font-semibold text-amber-600 uppercase">Carboidratos (g)</p>
+                    <p id="totalCarbs" class="text-4xl font-extrabold text-amber-700 mt-2">0.0</p>
+                </div>
+            </div>
+            
+            <p id="citation" class="mt-6 text-sm text-gray-500 italic text-center">
+                <!-- Fontes serão inseridas aqui -->
+            </p>
+
+            <button onclick="resetApp()" class="mt-8 w-full p-3 bg-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-400 transition duration-150">
+                Limpar Receita
+            </button>
+        </div>
+
+        <!-- Modal de Mensagem (substitui alert()) -->
+        <div id="messageModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full transform transition-all duration-300 scale-100">
+                <h3 id="modalTitle" class="text-xl font-bold text-primary-dark mb-3">Aviso</h3>
+                <p id="modalMessage" class="text-gray-700 mb-4">Mensagem.</p>
+                <button onclick="closeModal()" class="w-full p-3 bg-primary-light text-white font-semibold rounded-lg hover:bg-primary-dark transition duration-150">Fechar</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Link para o arquivo JavaScript externo -->
+    <script src="script.js"></script>
+</body>
+</html>
