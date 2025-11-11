@@ -1,656 +1,853 @@
-// Configuração de Segurança: Use sua chave API aqui.
-// ATENÇÃO: Se estiver em um site público (GitHub Pages), esta chave estará visível!
-// Use um serviço de proxy backend (como Netlify Functions) para produção segura.
+/*
+ * Diário Nutricional - script.js
+ * Lógica centralizada para perfil, navegação, cálculo e histórico.
+ */
+
+// -----------------------------------------------------------------------------
+// CHAVE DE API (Substitua pela sua chave)
+// -----------------------------------------------------------------------------
+// AVISO DE SEGURANÇA: Não exponha esta chave publicamente (ex: GitHub Pages).
+// Use um proxy de backend (ex: Netlify/Vercel Functions) para produção.
 const apiKey = "AIzaSyATeUV4-8VkKFidO2dy2Ifl_MO40aznmmE"; 
+// -----------------------------------------------------------------------------
 
-// --- Variáveis de Estado (LocalStorage Keys) ---
-const HISTORY_KEY = 'nutriDiaryHistory';
-const PROFILE_KEY = 'nutriDiaryProfile';
 
-// --- Estado Global (Apenas para a Calculadora) ---
-let ingredients = [];
+// -----------------------------------------------------------------------------
+// ESTADO GLOBAL E VARIÁVEIS
+// -----------------------------------------------------------------------------
+let ingredients = []; // Array de ingredientes da receita atual
+let currentTotals = null; // Armazena os totais após o cálculo
 
-// --- UTILITIES (Componentes Comuns) ---
+// -----------------------------------------------------------------------------
+// INICIALIZAÇÃO (Correr em todas as páginas)
+// -----------------------------------------------------------------------------
 
-// Define o HTML do Cabeçalho e do Modal de Mensagens, centralizando-o aqui.
-const COMMON_COMPONENTS_HTML = (profile, pageTitle) => {
-    // Determina se o botão de voltar deve aparecer
-    const showBackButton = pageTitle !== 'Diário Nutricional - Início';
-    const backButtonHTML = showBackButton ?
-        `<a href="index.html" class="flex items-center text-white hover:text-gray-200 transition duration-150">
-            <i class="fas fa-arrow-left mr-2"></i> Voltar
-        </a>` : '';
+/**
+ * Ponto de entrada principal. É executado quando o DOM está pronto.
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    // Carrega componentes comuns (Header, Modal) em todas as páginas
+    loadCommonComponents();
 
-    return `
-    <header class="fixed top-0 left-0 w-full bg-indigo-700 shadow-md z-30 p-4">
-        <div class="max-w-full mx-auto flex justify-between items-center h-12">
-            
-            <!-- Botão de Voltar / Título -->
-            ${backButtonHTML}
-            <span class="text-xl font-bold text-white">${pageTitle.replace('Diário Nutricional - ', '')}</span>
+    // Inicializa a lógica específica da página atual
+    const pageId = document.body.querySelector('main')?.id;
 
-            <!-- Perfil e Menu Dropdown -->
-            <div class="relative">
-                <div id="profileTrigger" onclick="toggleProfileMenu()" class="flex items-center cursor-pointer space-x-2 p-1 rounded-full hover:bg-indigo-600 transition duration-150">
-                    <span class="text-white font-semibold text-sm hidden sm:block">${profile.name}</span>
-                    <img id="avatarImage" src="${profile.avatarUrl}" onerror="this.src='https://placehold.co/40x40/5b21b6/ffffff?text=User'" alt="Avatar" class="w-10 h-10 rounded-full object-cover border-2 border-white">
-                    <i class="fas fa-ellipsis-v text-white text-lg ml-2"></i>
-                </div>
+    switch (pageId) {
+        case 'home-screen':
+            // Atualmente, a home não precisa de JS específico além do comum
+            break;
+        case 'calculator-screen':
+            initCalculator();
+            break;
+        case 'history-screen':
+            loadHistory();
+            break;
+    }
+});
 
-                <!-- Menu Dropdown -->
-                <div id="profileMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 py-2 hidden origin-top-right transform scale-95 opacity-0 transition-all duration-200">
-                    <div class="px-4 py-2 text-sm text-gray-700 font-semibold border-b">
-                        Olá, ${profile.name}!
+/**
+ * Injeta o HTML do Header e do Modal no DOM.
+ * Centraliza a lógica de perfil e navegação.
+ */
+function loadCommonComponents() {
+    const headerPlaceholder = document.getElementById('main-header-placeholder');
+    const modalPlaceholder = document.getElementById('modal-placeholder');
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
+    // 1. HTML do Header
+    if (headerPlaceholder) {
+        const headerHtml = `
+            <div class="w-full bg-purple-700 text-white shadow-md fixed top-0 left-0 z-50">
+                <div class="max-w-5xl mx-auto p-3 flex justify-between items-center">
+                    <!-- Botão Voltar (se não estiver na Home) -->
+                    ${currentPage !== 'index.html' ? `
+                    <a href="index.html" class="text-white hover:bg-purple-600 p-2 rounded-full transition-colors">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    ` : `<div></div>`}
+
+                    <!-- Título -->
+                    <h1 class="text-xl font-bold">${document.title.split('-')[0].trim()}</h1>
+
+                    <!-- Perfil do Utilizador -->
+                    <div class="relative">
+                        <button id="profileButton" class="flex items-center space-x-2 hover:bg-purple-600 p-2 rounded-lg transition-colors">
+                            <span id="profileNameDisplay" class="text-sm font-medium hidden sm:block">Utilizador</span>
+                            <img id="profileAvatarDisplay" src="https://placehold.co/40x40/E9D5FF/6B21A8?text=P" class="w-8 h-8 rounded-full border-2 border-purple-300 object-cover">
+                            <i class="fas fa-ellipsis-v text-sm sm:ml-2"></i>
+                        </button>
+                        
+                        <!-- Menu Dropdown do Perfil (escondido) -->
+                        <div id="profileMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
+                            <button id="editNameBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Editar Nome</button>
+                            <button id="editAvatarBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Mudar Avatar</button>
+                        </div>
                     </div>
-                    <button onclick="changeProfileName(); toggleProfileMenu()" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
-                        <i class="fas fa-user-edit mr-2"></i> Editar Nome
-                    </button>
-                    <button onclick="changeAvatarUrl(); toggleProfileMenu()" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
-                        <i class="fas fa-camera mr-2"></i> Mudar Avatar
-                    </button>
                 </div>
             </div>
-        </div>
-    </header>
-
-    <div id="messageModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" onclick="hideMessage()">
-        <div class="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full" onclick="event.stopPropagation()">
-            <h3 id="modalTitle" class="text-xl font-bold mb-3 text-indigo-700"></h3>
-            <p id="modalMessage" class="text-gray-700 mb-4"></p>
-            <button onclick="hideMessage()" class="w-full bg-indigo-500 text-white py-2 rounded-lg hover:bg-indigo-600 transition duration-150">Fechar</button>
-        </div>
-    </div>
-    `;
-}
-
-// Injeta o cabeçalho e o modal nas tags placeholder em qualquer página
-function loadCommonComponents() {
-    const profile = loadProfile();
-    const pageTitle = document.title;
-    
-    const headerPlaceholder = document.getElementById('header-placeholder');
-    const modalPlaceholder = document.getElementById('message-modal-placeholder');
-
-    if (headerPlaceholder) {
-        headerPlaceholder.innerHTML = COMMON_COMPONENTS_HTML(profile, pageTitle);
+        `;
+        headerPlaceholder.innerHTML = headerHtml;
     }
-    
-    // O modal também faz parte dos componentes comuns
+
+    // 2. HTML do Modal (ATUALIZADO com botões de confirmação)
     if (modalPlaceholder) {
-        // O modal já está no HTML gerado por COMMON_COMPONENTS_HTML, mas precisamos
-        // garantir que ele esteja no DOM.
-        // Já que ele foi injetado, vamos apenas garantir que a variável profile seja atualizada.
-        renderProfile();
-    }
-}
+        const modalHtml = `
+            <div id="messageModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+                    <h3 id="modalTitle" class="text-xl font-bold text-gray-800"></h3>
+                    <p id="modalMessage" class="text-gray-600 mt-2 mb-4"></p>
+                    
+                    <!-- Botão de Fechar Padrão (para showMessage) -->
+                    <div id="modal-close-button" class="flex justify-end">
+                        <button id="modalCloseBtn" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">Fechar</button>
+                    </div>
 
-// --- UTILITIES (LocalStorage e Interface) ---
-
-function showMessage(title, message, isError = false) {
-    const modal = document.getElementById('messageModal');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalMessage = document.getElementById('modalMessage');
-    const button = modal.querySelector('button');
-
-    modalTitle.textContent = title;
-    modalMessage.textContent = message;
-
-    if (isError) {
-        modalTitle.classList.remove('text-indigo-700');
-        modalTitle.classList.add('text-red-600');
-        button.classList.remove('bg-indigo-500', 'hover:bg-indigo-600');
-        button.classList.add('bg-red-500', 'hover:bg-red-600');
-    } else {
-        modalTitle.classList.remove('text-red-600');
-        modalTitle.classList.add('text-indigo-700');
-        button.classList.remove('bg-red-500', 'hover:bg-red-600');
-        button.classList.add('bg-indigo-500', 'hover:bg-indigo-600');
+                    <!-- Botões de Confirmação (para showConfirmationModal) -->
+                    <div id="modal-confirm-buttons" class="hidden flex justify-end gap-3 mt-4">
+                        <button id="modalCancelBtn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors">Cancelar</button>
+                        <button id="modalConfirmBtn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">Confirmar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        modalPlaceholder.innerHTML = modalHtml;
     }
 
-    modal.classList.remove('hidden');
-}
-
-function hideMessage() {
-    document.getElementById('messageModal').classList.add('hidden');
-}
-
-// --- LÓGICA DE PERFIL ---
-
-function loadProfile() {
-    const storedProfile = localStorage.getItem(PROFILE_KEY);
-    return storedProfile ? JSON.parse(storedProfile) : {
-        name: 'Usuário',
-        avatarUrl: 'https://placehold.co/40x40/5b21b6/ffffff?text=U'
-    };
-}
-
-function saveProfile(profile) {
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-    renderProfile(); // Atualiza o DOM após salvar
-}
-
-function renderProfile() {
-    const profile = loadProfile();
-    const avatarImg = document.getElementById('avatarImage');
-    const profileTrigger = document.getElementById('profileTrigger');
-    const profileMenu = document.getElementById('profileMenu');
-    
-    // Atualiza a barra superior
-    if (profileTrigger) {
-        profileTrigger.querySelector('span').textContent = profile.name;
-    }
-
-    // Atualiza a imagem em todos os lugares
-    if (avatarImg) {
-        avatarImg.src = profile.avatarUrl;
-        avatarImg.onerror = () => {
-            avatarImg.src = 'https://placehold.co/40x40/5b21b6/ffffff?text=User'; // Fallback
-        };
-    }
-    
-    // Atualiza o nome no menu suspenso
-    if (profileMenu) {
-        profileMenu.querySelector('.font-semibold').textContent = `Olá, ${profile.name}!`;
-    }
-}
-
-function toggleProfileMenu() {
-    const menu = document.getElementById('profileMenu');
-    if (menu) {
-        menu.classList.toggle('hidden');
-        menu.classList.toggle('scale-95');
-        menu.classList.toggle('opacity-0');
-        menu.classList.toggle('scale-100');
-        menu.classList.toggle('opacity-100');
-    }
-}
-
-// Fecha o menu do perfil ao clicar fora
-window.onclick = function(event) {
-    const menu = document.getElementById('profileMenu');
-    const trigger = document.getElementById('profileTrigger');
-
-    if (menu && trigger && !menu.classList.contains('hidden')) {
-        let target = event.target;
-        // Navega para cima no DOM para verificar se o clique foi dentro do menu ou do trigger
-        while (target) {
-            if (target === menu || target === trigger) {
-                return;
-            }
-            target = target.parentNode;
-        }
-        toggleProfileMenu(); // Fecha o menu
-    }
-}
-
-
-function changeProfileName() {
-    const profile = loadProfile();
-    const newName = prompt("Insira seu novo nome de exibição:", profile.name);
-    if (newName && newName.trim() !== '') {
-        profile.name = newName.trim();
-        saveProfile(profile);
-        showMessage("Nome Atualizado", `Seu nome de exibição foi alterado para ${newName}.`);
-    } else if (newName !== null) {
-        showMessage("Erro", "O nome não pode ser vazio.", true);
-    }
-}
-
-function changeAvatarUrl() {
-    const profile = loadProfile();
-    const newUrl = prompt("Insira a URL da sua nova foto de perfil:", profile.avatarUrl);
-    if (newUrl && newUrl.trim() !== '') {
-        profile.avatarUrl = newUrl.trim();
-        saveProfile(profile);
-        showMessage("Avatar Atualizado", "Sua foto de perfil foi alterada! Se a URL estiver incorreta, pode demorar para aparecer.", false);
-    } else if (newUrl !== null) {
-        showMessage("Erro", "A URL do avatar não pode ser vazia.", true);
-    }
-}
-
-// --- LÓGICA DE HISTÓRICO (LocalStorage) ---
-
-function getHistoryFromLocalStorage() {
-    const storedHistory = localStorage.getItem(HISTORY_KEY);
-    return storedHistory ? JSON.parse(storedHistory) : [];
-}
-
-function saveHistoryToLocalStorage(history) {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-    console.log(`DEBUG: Histórico SALVO no localStorage. Novo total: ${history.length} receitas.`);
+    // 3. Adiciona Listeners para os componentes comuns
+    initCommonListeners();
+    // 4. Carrega os dados do perfil (Nome/Avatar)
+    loadProfile();
 }
 
 /**
- * Salva a receita calculada no histórico de consumo do dia atual.
- * @param {object} recipe O objeto de receita com nome e detalhes nutricionais.
+ * Adiciona listeners aos elementos comuns (Perfil, Modal).
  */
-function addRecipeToHistory(recipe) {
-    const history = getHistoryFromLocalStorage();
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+function initCommonListeners() {
+    // Modal
+    const modal = document.getElementById('messageModal');
+    const closeBtn = document.getElementById('modalCloseBtn');
+    
+    // O botão de fechar padrão (roxo)
+    if (modal && closeBtn) {
+        closeBtn.onclick = () => modal.classList.add('hidden');
+    }
 
+    // Perfil
+    const profileButton = document.getElementById('profileButton');
+    const profileMenu = document.getElementById('profileMenu');
+    const editNameBtn = document.getElementById('editNameBtn');
+    const editAvatarBtn = document.getElementById('editAvatarBtn');
+
+    if (profileButton && profileMenu) {
+        profileButton.onclick = (e) => {
+            // Evita que o 'window.onclick' feche o menu imediatamente
+            e.stopPropagation();
+            profileMenu.classList.toggle('hidden');
+        };
+    }
+
+    if (editNameBtn) editNameBtn.onclick = changeProfileName;
+    if (editAvatarBtn) editAvatarBtn.onclick = changeAvatarUrl;
+
+    // Fecha o menu de perfil se clicar fora
+    window.onclick = (e) => {
+        if (profileMenu && !profileMenu.classList.contains('hidden')) {
+            // Se o clique NÃO foi no botão que abre o menu
+            if (!profileButton.contains(e.target)) {
+                profileMenu.classList.add('hidden');
+            }
+        }
+    };
+}
+
+
+// -----------------------------------------------------------------------------
+// LÓGICA DE PERFIL (localStorage)
+// -----------------------------------------------------------------------------
+const PROFILE_KEY = 'nutriDiaryProfile';
+
+/**
+ * Obtém os dados do perfil (nome/avatar) do localStorage.
+ */
+function getProfile() {
+    const defaultProfile = {
+        name: 'Utilizador',
+        avatar: 'https://placehold.co/40x40/E9D5FF/6B21A8?text=P'
+    };
+    try {
+        const stored = localStorage.getItem(PROFILE_KEY);
+        return stored ? JSON.parse(stored) : defaultProfile;
+    } catch (e) {
+        console.error("Erro ao ler perfil do localStorage", e);
+        return defaultProfile;
+    }
+}
+
+/**
+ * Salva o objeto do perfil no localStorage.
+ */
+function saveProfile(profile) {
+    try {
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    } catch (e) {
+        console.error("Erro ao guardar perfil no localStorage", e);
+    }
+}
+
+/**
+ * Carrega o perfil e o renderiza no header.
+ */
+function loadProfile() {
+    const profile = getProfile();
+    renderProfile(profile);
+}
+
+/**
+ * Renderiza o nome e o avatar no header.
+ */
+function renderProfile(profile) {
+    const nameDisplay = document.getElementById('profileNameDisplay');
+    const avatarDisplay = document.getElementById('profileAvatarDisplay');
+    
+    if (nameDisplay) nameDisplay.textContent = profile.name;
+    if (avatarDisplay) {
+        avatarDisplay.src = profile.avatar;
+        // Fallback de imagem
+        avatarDisplay.onerror = () => {
+            avatarDisplay.src = 'https://placehold.co/40x40/E9D5FF/6B21A8?text=P';
+            // Opcional: reverte para o avatar padrão se o URL falhar
+            // profile.avatar = defaultProfile.avatar;
+            // saveProfile(profile);
+        };
+    }
+}
+
+/**
+ * Pede e salva um novo nome de perfil.
+ */
+function changeProfileName() {
+    const profile = getProfile();
+    const newName = prompt("Qual é o seu nome?", profile.name);
+    if (newName && newName.trim() !== '') {
+        profile.name = newName.trim();
+        saveProfile(profile);
+        renderProfile(profile);
+        showMessage("Sucesso", "Nome de perfil atualizado!");
+    }
+    document.getElementById('profileMenu')?.classList.add('hidden');
+}
+
+/**
+ * Pede e salva um novo URL de avatar.
+ */
+function changeAvatarUrl() {
+    const profile = getProfile();
+    const newUrl = prompt("Insira o URL da sua nova imagem de avatar:", profile.avatar);
+    if (newUrl && newUrl.trim() !== '') {
+        // Validação simples de URL (deve começar com http)
+        if (newUrl.trim().startsWith('http://') || newUrl.trim().startsWith('https://')) {
+            profile.avatar = newUrl.trim();
+            saveProfile(profile);
+            renderProfile(profile);
+            showMessage("Sucesso", "Avatar atualizado!");
+        } else {
+            showMessage("Erro de URL", "Por favor, insira um URL válido que comece com http:// ou https://");
+        }
+    }
+    document.getElementById('profileMenu')?.classList.add('hidden');
+}
+
+
+// -----------------------------------------------------------------------------
+// LÓGICA DA CALCULADORA
+// -----------------------------------------------------------------------------
+
+/**
+ * Inicializa os listeners da página da calculadora.
+ */
+function initCalculator() {
+    // Liga os botões aos seus handlers
+    document.getElementById('addIngredientBtn')?.addEventListener('click', addIngredient);
+    document.getElementById('calculateBtn')?.addEventListener('click', calculateTotal);
+    document.getElementById('saveBtn')?.addEventListener('click', saveRecipeToHistory);
+    
+    // Renderiza a lista inicial (vazia)
+    renderIngredientList();
+}
+
+/**
+ * Adiciona um ingrediente à lista 'ingredients'.
+ */
+function addIngredient() {
+    const nameInput = document.getElementById('ingredientName');
+    const quantityInput = document.getElementById('ingredientQuantity');
+    const unitSelect = document.getElementById('ingredientUnit');
+
+    const name = nameInput.value.trim();
+    const quantityRaw = quantityInput.value.trim();
+    const quantity = parseFloat(quantityRaw);
+    const unit = unitSelect.value;
+
+    // --- Validação Melhorada ---
+    if (!name) {
+        showMessage('Erro de Validação', 'Por favor, insira o nome do ingrediente.');
+        return;
+    }
+    if (!quantityRaw) {
+         showMessage('Erro de Validação', 'Por favor, insira a quantidade.');
+         return;
+    }
+    if (isNaN(quantity) || quantity <= 0) {
+        showMessage('Erro de Validação', 'A quantidade deve ser um número positivo.');
+        return;
+    }
+    // --- Fim da Validação ---
+
+    ingredients.push({ name, quantity, unit });
+    
+    // Atualiza a UI
+    renderIngredientList();
+    resetCalculatorInputs(nameInput, quantityInput, unitSelect);
+    
+    // Força o recálculo
+    disableSaveButton();
+}
+
+/**
+ * Renderiza a lista de ingredientes no DOM.
+ */
+function renderIngredientList() {
+    const listElement = document.getElementById('ingredientList');
+    const countElement = document.getElementById('ingredientCount');
+    if (!listElement) return;
+
+    if (ingredients.length === 0) {
+        listElement.innerHTML = `<p id="emptyListMessage" class="text-center text-gray-500 py-4">Nenhum ingrediente adicionado.</p>`;
+    } else {
+        const listHtml = ingredients.map((item, index) => `
+            <div class="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm border border-gray-200 animate-fade-in">
+                <span class="text-gray-700">${item.name} (<span class="text-purple-600 font-medium">${item.quantity} ${item.unit}</span>)</span>
+                
+                <!-- Botão de Excluir -->
+                <button onclick="removeIngredient(${index})" class="text-red-500 hover:text-red-700 transition-colors duration-200 cursor-pointer p-1">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `).join('');
+        listElement.innerHTML = listHtml;
+    }
+
+    if (countElement) {
+        countElement.textContent = ingredients.length;
+    }
+}
+
+/**
+ * Remove um ingrediente da lista pelo seu índice.
+ */
+function removeIngredient(index) {
+    // Confirmação (opcional, mas boa prática)
+    // const item = ingredients[index];
+    // if (!confirm(`Tem a certeza que quer remover "${item.name}"?`)) {
+    //     return;
+    // }
+
+    ingredients.splice(index, 1); // Remove o item do array
+    renderIngredientList(); // Re-renderiza a lista
+    disableSaveButton(); // Força o recálculo
+}
+
+/**
+ * Reseta os campos de input da calculadora.
+ */
+function resetCalculatorInputs(nameInput, quantityInput, unitSelect) {
+    if (nameInput) nameInput.value = '';
+    if (quantityInput) quantityInput.value = '100';
+    if (unitSelect) unitSelect.value = 'g (gramas)';
+    if (nameInput) nameInput.focus();
+}
+
+/**
+ * Desativa o botão 'Gravar' e esconde os totais (força recálculo).
+ */
+function disableSaveButton() {
+    const saveBtn = document.getElementById('saveBtn');
+    if (saveBtn) {
+        saveBtn.setAttribute('disabled', 'true');
+    }
+    document.getElementById('totalsResult')?.classList.add('hidden');
+    currentTotals = null;
+}
+
+/**
+ * Inicia o processo de cálculo dos nutrientes totais.
+ */
+async function calculateTotal() {
+    if (ingredients.length === 0) {
+        showMessage('Lista Vazia', 'Adicione pelo menos um ingrediente antes de calcular.');
+        return;
+    }
+
+    if (!apiKey || apiKey === "SUA_CHAVE_API_VAI_AQUI") {
+        showMessage('Erro de Configuração', 'A chave API (apiKey) não foi configurada no script.js. O cálculo não pode prosseguir.');
+        return;
+    }
+
+    const calculateBtn = document.getElementById('calculateBtn');
+    const originalBtnHtml = calculateBtn.innerHTML;
+    calculateBtn.innerHTML = `<i class="fas fa-spinner animate-spin mr-2"></i>A calcular...`;
+    calculateBtn.setAttribute('disabled', 'true');
+
+    try {
+        // Usamos JSON estruturado para obter dados da API
+        const { nutrients, errors } = await fetchNutrientsBatch(ingredients);
+
+        if (errors.length > 0) {
+            showMessage('Erro de Cálculo', `Não foi possível obter dados para: ${errors.join(', ')}. Tente verificar a ortografia.`);
+        }
+
+        if (nutrients.length > 0) {
+            // Calcula os totais
+            const totals = nutrients.reduce((acc, item) => ({
+                calories: acc.calories + item.calories,
+                protein: acc.protein + item.protein,
+                carbs: acc.carbs + item.carbs
+            }), { calories: 0, protein: 0, carbs: 0 });
+
+            // Armazena os totais para salvar
+            currentTotals = totals;
+            
+            // Exibe os totais
+            displayTotals(totals);
+            document.getElementById('saveBtn')?.removeAttribute('disabled');
+        }
+    } catch (error) {
+        console.error("Erro na função calculateTotal:", error);
+        showMessage('Erro de API', `Ocorreu um erro ao contactar a API: ${error.message}. Verifique o console para detalhes.`);
+    } finally {
+        // Restaura o botão
+        calculateBtn.innerHTML = originalBtnHtml;
+        calculateBtn.removeAttribute('disabled');
+    }
+}
+
+/**
+ * Busca os nutrientes de todos os ingredientes em lote.
+ */
+async function fetchNutrientsBatch(ingredientList) {
+    const nutrients = [];
+    const errors = [];
+
+    // --- CORREÇÃO: Prompt do sistema atualizado para solicitar um ARRAY JSON ---
+    const systemPrompt = `
+        Aja como um nutricionista assistente. O utilizador fornecerá uma lista de ingredientes.
+        Para CADA ingrediente, calcule as calorias totais, proteínas totais (em gramas) e carboidratos totais (em gramas).
+        Baseie-se em dados nutricionais padrão (ex: USDA).
+        Responda APENAS com um ARRAY JSON (uma lista), onde cada objeto corresponde a um ingrediente na ordem em que foi dado.
+        Formato de cada objeto no array: {"ingredient": "nome", "calories": [valor], "protein": [valor], "carbs": [valor]}.
+        Se um ingrediente não for reconhecido (ex: "comida de fadas"), retorne 0 para todos os campos desse item.
+        Não use markdown \`\`\`json. A resposta deve começar com [ e terminar com ].
+    `;
+
+    // --- CORREÇÃO: Query do usuário atualizada para reforçar o pedido do ARRAY ---
+    const userQuery = "Calcule os nutrientes para a seguinte lista de ingredientes (retorne um array JSON):\n" +
+                      ingredientList.map(item => `- ${item.name}: ${item.quantity} ${item.unit}`).join('\n');
+
+    // --- Payload corrigido (sem generationConfig) ---
+    const payload = {
+        contents: [{ parts: [{ text: userQuery }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        // Ferramenta de Google Search para grounding (obter dados da web)
+        tools: [{ "google_search": {} }]
+    };
+
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            // Tenta ler o corpo do erro para mais detalhes
+            const errorBody = await response.json().catch(() => ({}));
+            console.error("API Error Response Body:", errorBody);
+            throw new Error(`A resposta da API falhou com status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        // Tenta extrair o texto da resposta
+        const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!responseText) {
+            throw new Error("A resposta da API estava vazia ou mal formatada.");
+        }
+
+        let jsonString = responseText.trim();
+        // Tenta limpar o markdown (embora o prompt peça para não o usar)
+        if (jsonString.startsWith('```')) {
+            const match = jsonString.match(/```json\n([\s\S]*?)\n```/);
+            jsonString = match && match[1] ? match[1].trim() : jsonString.replace(/```json|```/g, '').trim();
+        }
+
+        // --- CORREÇÃO: Verificar se a resposta é um ARRAY ---
+        if (!jsonString.startsWith('[')) {
+            throw new Error("A resposta da API não continha um array JSON válido.");
+        }
+        
+        const parsedData = JSON.parse(jsonString);
+        // --- CORREÇÃO: A resposta parseada é o próprio array de resultados ---
+        const apiResults = parsedData;
+
+        console.log("DEBUG: Resposta da API (parseada):", apiResults);
+
+        // Mapeia os resultados da API de volta para a nossa lista de ingredientes
+        ingredientList.forEach((originalItem, index) => {
+            const apiData = apiResults[index]; // Esta linha não deve mais falhar
+            if (apiData && (apiData.calories > 0 || apiData.protein > 0 || apiData.carbs > 0)) {
+                nutrients.push({
+                    name: originalItem.name, // Mantém o nome original
+                    calories: apiData.calories || 0,
+                    protein: apiData.protein || 0,
+                    carbs: apiData.carbs || 0
+                });
+            } else {
+                // Se a API retornou 0 ou dados inválidos, marca como erro
+                errors.push(originalItem.name);
+            }
+        });
+
+        return { nutrients, errors };
+
+    } catch (error) {
+        console.error("Erro em fetchNutrientsBatch:", error.message);
+        throw error; // Repassa o erro para a 'calculateTotal'
+    }
+}
+
+
+/**
+ * Exibe os totais calculados na interface.
+ */
+function displayTotals(totals) {
+    document.getElementById('totalCalories').textContent = totals.calories.toFixed(0);
+    document.getElementById('totalProtein').textContent = `${totals.protein.toFixed(1)} g`;
+    document.getElementById('totalCarbs').textContent = `${totals.carbs.toFixed(1)} g`;
+    
+    document.getElementById('totalsResult')?.classList.remove('hidden');
+}
+
+
+// -----------------------------------------------------------------------------
+// LÓGICA DE HISTÓRICO (localStorage)
+// -----------------------------------------------------------------------------
+const HISTORY_KEY = 'nutriDiaryHistory';
+
+/**
+ * Obtém o histórico (array) do localStorage.
+ */
+function getHistoryFromLocalStorage() {
+    try {
+        const stored = localStorage.getItem(HISTORY_KEY);
+        return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+        console.error("Erro ao ler histórico do localStorage", e);
+        return [];
+    }
+}
+
+/**
+ * Salva o histórico (array) no localStorage.
+ */
+function saveHistoryToLocalStorage(history) {
+    try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch (e) {
+        console.error("Erro ao guardar histórico no localStorage", e);
+    }
+}
+
+/**
+ * Salva a receita atual (ingredientes + totais) no histórico.
+ */
+function saveRecipeToHistory() {
+    if (!currentTotals || ingredients.length === 0) {
+        showMessage('Erro', 'Calcule os totais antes de gravar. Se alterou a lista, recalcule.');
+        return;
+    }
+    
+    // Pede um nome para a refeição
+    const recipeName = prompt("Dê um nome a esta refeição (ex: 'Pequeno-almoço', 'Lasanha')", "Refeição");
+    if (!recipeName) return; // Utilizador cancelou
+
+    const history = getHistoryFromLocalStorage();
     const newEntry = {
-        ...recipe,
-        date: formattedDate,
-        timestamp: now.getTime(),
-        // Adiciona userId para fins de estruturação, embora o localStorage seja local
-        userId: 'local-user-' + loadProfile().name.replace(/\s/g, '-')
+        id: Date.now(), // ID único
+        name: recipeName,
+        date: new Date().toISOString(), // Data em formato ISO (para agrupar)
+        totals: currentTotals,
+        ingredients: [...ingredients] // Salva uma cópia dos ingredientes
     };
 
     history.push(newEntry);
     saveHistoryToLocalStorage(history);
+    console.log(`DEBUG: Histórico SALVO no localStorage. Novo total: ${history.length}`);
+
+    // Feedback e redirecionamento
+    showMessage('Sucesso!', 'Refeição gravada no seu histórico.');
+
+    // Reseta a calculadora
+    ingredients = [];
+    currentTotals = null;
+    renderIngredientList();
+    disableSaveButton();
+
+    // Opcional: Redireciona para o histórico após salvar
+    setTimeout(() => {
+        window.location.href = 'historico.html';
+    }, 1500); // Espera 1.5s após a mensagem de sucesso
 }
 
 /**
- * Carrega e renderiza o histórico de consumo na página historico.html.
+ * Carrega e renderiza o histórico na página de histórico.
  */
 function loadHistory() {
-    const historyContainer = document.getElementById('historyContainer');
-    const noHistoryMessage = document.getElementById('noHistoryMessage');
-    
-    if (!historyContainer) return; // Garante que estamos na página correta
-
     const history = getHistoryFromLocalStorage();
+    const container = document.getElementById('historyListContainer');
+    const noHistoryMessage = document.getElementById('noHistoryMessage');
+
     console.log(`DEBUG: Histórico lido do localStorage (Total de itens): ${history.length}`);
-    
-    // Verifica a mensagem de lista vazia
-    if (noHistoryMessage) {
-        if (history.length === 0) {
-            noHistoryMessage.classList.remove('hidden');
-            historyContainer.innerHTML = '';
-            return;
-        } else {
-            noHistoryMessage.classList.add('hidden');
-        }
+
+    if (!container || !noHistoryMessage) {
+        console.error("Elemento 'historyListContainer' ou 'noHistoryMessage' não encontrado.");
+        return;
     }
-    
-    // 1. Agrupar por data
-    const groupedHistory = history.reduce((acc, item) => {
-        // Usa o campo 'date' que já está formatado
-        const date = item.date;
-        if (!acc[date]) {
-            acc[date] = [];
+
+    if (history.length === 0) {
+        noHistoryMessage.classList.remove('hidden');
+        container.classList.add('hidden');
+        return;
+    }
+
+    noHistoryMessage.classList.add('hidden');
+    container.classList.remove('hidden');
+
+    // 1. Agrupa o histórico por dia
+    const groupedByDay = history.reduce((acc, entry) => {
+        const entryDate = new Date(entry.date);
+        // Formata a data como "Quinta-feira, 10 de Novembro"
+        const dayKey = entryDate.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        
+        if (!acc[dayKey]) {
+            acc[dayKey] = {
+                dateObj: entryDate,
+                entries: [],
+                totals: { calories: 0, protein: 0, carbs: 0 }
+            };
         }
-        acc[date].push(item);
+        
+        acc[dayKey].entries.push(entry);
+        acc[dayKey].totals.calories += entry.totals.calories;
+        acc[dayKey].totals.protein += entry.totals.protein;
+        acc[dayKey].totals.carbs += entry.totals.carbs;
+        
         return acc;
     }, {});
 
-    // 2. Ordenar as datas (da mais nova para a mais antiga)
-    const sortedDates = Object.keys(groupedHistory).sort((a, b) => {
-        // Converte DD/MM/AAAA para um formato comparável
-        const dateA = new Date(a.split('/').reverse().join('-')).getTime();
-        const dateB = new Date(b.split('/').reverse().join('-')).getTime();
-        return dateB - dateA; // Mais recente primeiro
+    // 2. Ordena os dias (do mais recente para o mais antigo)
+    const sortedDays = Object.keys(groupedByDay).sort((a, b) => {
+        return groupedByDay[b].dateObj - groupedByDay[a].dateObj;
     });
 
-    historyContainer.innerHTML = ''; // Limpa o conteúdo
-
-    // 3. Renderizar
-    sortedDates.forEach(date => {
-        const recipes = groupedHistory[date];
-        let totalCalories = 0;
-        let totalProtein = 0;
-        let totalCarbs = 0;
-
-        // Calcular totais do dia
-        recipes.forEach(recipe => {
-            totalCalories += recipe.totals.calories;
-            totalProtein += recipe.totals.protein;
-            totalCarbs += recipe.totals.carbs;
-        });
-
-        // Título do Dia e Totais
-        const dayHeader = `
-            <div class="bg-white p-4 rounded-xl shadow-lg border border-gray-200">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-3 mb-3">
-                    <h2 class="text-xl font-extrabold text-indigo-700">${date}</h2>
-                    <div class="flex flex-wrap space-x-4 mt-2 md:mt-0 text-sm font-semibold">
-                        <span class="text-red-600">${totalCalories.toFixed(0)} kcal</span>
-                        <span class="text-blue-600">${totalProtein.toFixed(1)} g Prot.</span>
-                        <span class="text-orange-600">${totalCarbs.toFixed(1)} g Carbo.</span>
+    // 3. Renderiza o HTML
+    container.innerHTML = sortedDays.map(dayKey => {
+        const dayData = groupedByDay[dayKey];
+        
+        return `
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                <!-- Cabeçalho do Dia (com totais) -->
+                <div class="bg-gray-50 p-4 border-b border-gray-200">
+                    <h3 class="text-lg font-bold text-purple-700">${dayKey}</h3>
+                    <!-- Totais do Dia -->
+                    <div class="grid grid-cols-3 gap-2 mt-2 text-center">
+                        <div>
+                            <span class="block text-xs text-gray-500">Total Calorias</span>
+                            <span class="text-md font-semibold text-gray-800">${dayData.totals.calories.toFixed(0)}</span>
+                        </div>
+                        <div>
+                            <span class="block text-xs text-gray-500">Total Proteínas</span>
+                            <span class="text-md font-semibold text-gray-800">${dayData.totals.protein.toFixed(1)} g</span>
+                        </div>
+                        <div>
+                            <span class="block text-xs text-gray-500">Total Carboidratos</span>
+                            <span class="text-md font-semibold text-gray-800">${dayData.totals.carbs.toFixed(1)} g</span>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="space-y-4">
-                    ${recipes.map(recipe => `
-                        <div class="p-3 bg-gray-50 border border-gray-100 rounded-lg shadow-sm">
-                            <h3 class="font-bold text-gray-800">${recipe.recipeName}</h3>
-                            <p class="text-xs text-gray-500 mb-2">Registrado às ${new Date(recipe.timestamp).toLocaleTimeString('pt-BR')}</p>
-                            
-                            <!-- Detalhes Nutricionais da Receita -->
-                            <div class="flex justify-between text-xs mt-1">
-                                <span class="text-red-500 font-semibold">${recipe.totals.calories.toFixed(0)} kcal</span>
-                                <span class="text-blue-500">${recipe.totals.protein.toFixed(1)}g Prot.</span>
-                                <span class="text-orange-500">${recipe.totals.carbs.toFixed(1)}g Carbo.</span>
+                <!-- Lista de Refeições do Dia -->
+                <div class="divide-y divide-gray-200">
+                    ${dayData.entries.sort((a,b) => new Date(b.date) - new Date(a.date)).map(entry => `
+                        <div class="p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <div>
+                                    <span class="font-semibold text-gray-700">${entry.name}</span>
+                                    <span class="text-sm text-gray-500 ml-2">${new Date(entry.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                                <!-- ATUALIZAÇÃO: Botão de Excluir -->
+                                <button onclick="promptDeleteHistoryItem(${entry.id})" class="text-red-500 hover:text-red-700 transition-colors p-1" aria-label="Excluir refeição">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
-
-                            <!-- Ingredientes (Opcional, expandir se necessário) -->
-                            <details class="text-sm text-gray-600 mt-2">
-                                <summary class="font-medium text-gray-600 cursor-pointer hover:text-indigo-600">Ver Ingredientes (${recipe.ingredients.length})</summary>
-                                <ul class="list-disc list-inside mt-2 space-y-1 p-2 bg-white rounded-md border">
-                                    ${recipe.ingredients.map(ing => `<li>${ing.quantity} ${ing.unit} de ${ing.name}</li>`).join('')}
+                            <!-- Detalhes da Refeição (Macros) -->
+                            <div class="grid grid-cols-3 gap-2 text-center text-sm">
+                                <div>
+                                    <span class="block text-xs text-gray-500">Calorias</span>
+                                    <span class="font-medium text-gray-700">${entry.totals.calories.toFixed(0)}</span>
+                                </div>
+                                <div>
+                                    <span class="block text-xs text-gray-500">Proteínas</span>
+                                    <span class="font-medium text-gray-700">${entry.totals.protein.toFixed(1)} g</span>
+                                </div>
+                                <div>
+                                    <span class="block text-xs text-gray-500">Carboidratos</span>
+                                    <span class="font-medium text-gray-700">${entry.totals.carbs.toFixed(1)} g</span>
+                                </div>
+                            </div>
+                            <!-- Opcional: Ver ingredientes (pode ser um toggle) -->
+                            <!--
+                            <details class="mt-2 text-sm">
+                                <summary class="cursor-pointer text-blue-600">Ver ingredientes</summary>
+                                <ul class="list-disc list-inside pl-2 mt-1 text-gray-600">
+                                    ${entry.ingredients.map(ing => `<li>${ing.name} (${ing.quantity} ${ing.unit})</li>`).join('')}
                                 </ul>
                             </details>
+                            -->
                         </div>
                     `).join('')}
                 </div>
             </div>
         `;
-        historyContainer.insertAdjacentHTML('beforeend', dayHeader);
-    });
+    }).join('');
 }
 
-// --- LÓGICA DE CÁLCULO (API Gemini) ---
-
 /**
- * Adiciona um ingrediente à lista e atualiza o DOM e os botões.
+ * ATUALIZAÇÃO: Mostra o modal de confirmação para excluir um item.
  */
-function addIngredient() {
-    const name = document.getElementById('ingredientName').value.trim();
-    const quantity = parseFloat(document.getElementById('ingredientQuantity').value);
-    const unit = document.getElementById('ingredientUnit').value;
-
-    if (!name || isNaN(quantity) || quantity <= 0) {
-        showMessage("Erro de Ingrediente", "Por favor, preencha o nome e a quantidade corretamente.", true);
+function promptDeleteHistoryItem(entryId) {
+    const history = getHistoryFromLocalStorage();
+    const entry = history.find(e => e.id === entryId);
+    
+    if (!entry) {
+        console.error("Não foi possível encontrar o item de histórico para excluir.");
         return;
     }
 
-    ingredients.push({ name, quantity, unit });
-    renderIngredientList();
-
-    // Limpa o formulário
-    document.getElementById('ingredientName').value = '';
-    document.getElementById('ingredientQuantity').value = '';
-    document.getElementById('ingredientUnit').value = 'gramas';
-
-    // Garante que o botão de cálculo está ativo
-    document.getElementById('calculateButton').disabled = false;
-    document.getElementById('saveButton').disabled = true; // Desativa o salvar até calcular novamente
-    document.getElementById('results').classList.add('hidden');
+    // Mostra o modal de confirmação
+    showConfirmationModal(
+        'Confirmar Exclusão',
+        `Tem certeza que deseja excluir a refeição "${entry.name}"? Esta ação não pode ser desfeita.`,
+        () => {
+            deleteHistoryItem(entryId);
+        }
+    );
 }
 
 /**
- * Remove um ingrediente pelo índice e atualiza o DOM.
- * @param {number} index O índice do ingrediente na array global.
+ * ATUALIZAÇÃO: Exclui o item do localStorage e recarrega a lista.
  */
-function removeIngredient(index) {
-    ingredients.splice(index, 1);
-    renderIngredientList();
-
-    // Desativa o salvar e os resultados
-    document.getElementById('saveButton').disabled = true;
-    document.getElementById('results').classList.add('hidden');
-}
-
-/**
- * Atualiza a contagem de itens na lista e renderiza os ingredientes.
- */
-function renderIngredientList() {
-    const listElement = document.getElementById('ingredientList');
-    const countElement = document.getElementById('ingredientCount');
-    const emptyMessage = document.getElementById('emptyListMessage');
-
-    if (!listElement || !countElement || !emptyMessage) return; // Garante que estamos na página certa
-
-    countElement.textContent = ingredients.length;
-
-    if (ingredients.length === 0) {
-        emptyMessage.classList.remove('hidden');
-        document.getElementById('calculateButton').disabled = true;
-        document.getElementById('saveButton').disabled = true;
-        listElement.innerHTML = emptyMessage.outerHTML; // Mantém a mensagem de vazio
-        return;
-    }
-
-    emptyMessage.classList.add('hidden');
-
-    const listHtml = ingredients.map((ing, index) => `
-        <div class="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm border border-gray-200">
-            <span class="text-gray-700 font-medium">
-                ${ing.name} (<span class="font-bold text-indigo-600">${ing.quantity} ${ing.unit}</span>)
-            </span>
-            <button onclick="removeIngredient(${index})" class="text-red-500 hover:text-red-700 transition duration-150">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
-    `).join('');
-
-    // Insere a lista sem a mensagem de vazio
-    listElement.innerHTML = listHtml;
-}
-
-
-// --- LÓGICA DE API E CHAMADA ---
-
-/**
- * Função central para fazer a chamada à API Gemini com retries.
- * @param {string} prompt O prompt de texto para o modelo.
- * @param {object} generationConfig Configuração para JSON estruturado.
- * @param {number} retries Número de tentativas restantes.
- */
-async function fetchNutrientsWithRetry(prompt, generationConfig, retries = 3) {
-    if (!apiKey || apiKey === "SUA_CHAVE_API_VAI_AQUI") {
-        throw new Error("Chave API não configurada. Por favor, insira sua chave no script.js.");
-    }
+function deleteHistoryItem(entryId) {
+    let history = getHistoryFromLocalStorage();
+    history = history.filter(e => e.id !== entryId); // Filtra o array
+    saveHistoryToLocalStorage(history); // Salva o novo array
     
-    // A API Gemini-2.5-flash-preview-09-2025 não suporta 'tools' e 'responseMimeType' juntos.
-    // Como precisamos do JSON estruturado, vamos priorizar o JSON e usar o prompt para guiar a busca (Grounding).
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+    // Recarrega a visualização do histórico
+    loadHistory(); 
 
-    const payload = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: generationConfig,
-        // Remover 'tools' para permitir 'responseMimeType'
-        // tools: [{ "google_search": {} }], 
-    };
-
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-    for (let i = 1; i <= retries; i++) {
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                
-                const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                
-                if (jsonText) {
-                    // A resposta JSON pode vir com quebras de linha ou caracteres extras.
-                    // Tenta limpar e analisar
-                    try {
-                        const parsedJson = JSON.parse(jsonText);
-                        return parsedJson;
-                    } catch (e) {
-                        console.error("Erro ao analisar o JSON retornado:", e);
-                        console.error("JSON recebido:", jsonText);
-                        throw new Error("Falha na análise da resposta JSON do modelo.");
-                    }
-                } else {
-                    throw new Error("Resposta da API vazia ou inesperada.");
-                }
-            } else {
-                const errorBody = await response.json();
-                console.error("API Error Response Body:", errorBody);
-                throw new Error(`A resposta da API falhou com status: ${response.status}`);
-            }
-        } catch (error) {
-            console.error(`Tentativa ${i} falhou: ${error.message}`);
-            if (i < retries) {
-                // Aplica backoff exponencial: 1s, 2s, 4s...
-                await delay(Math.pow(2, i) * 1000);
-            } else {
-                // Última tentativa falhou
-                throw new Error("Falha ao obter dados nutricionais após 3 tentativas. Último erro: " + error.message);
-            }
-        }
-    }
+    // Feedback
+    showMessage("Sucesso", "A refeição foi excluída do seu histórico.");
 }
 
+
+// -----------------------------------------------------------------------------
+// FUNÇÕES UTILITÁRIAS (ex: Modal)
+// -----------------------------------------------------------------------------
+
 /**
- * Calcula o total de calorias, proteínas e carboidratos de todos os ingredientes.
+ * Exibe o modal de mensagens (Modo Informativo).
+ * @param {string} title Título do modal.
+ * @param {string} message Mensagem do modal.
  */
-async function calculateTotal() {
-    document.getElementById('calculateButton').disabled = true;
-    document.getElementById('saveButton').disabled = true;
-    document.getElementById('results').classList.add('hidden');
+function showMessage(title, message) {
+    const modal = document.getElementById('messageModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMessage = document.getElementById('modalMessage');
+    const closeBtnDiv = document.getElementById('modal-close-button');
+    const confirmBtnsDiv = document.getElementById('modal-confirm-buttons');
 
-    const loadingElement = document.createElement('div');
-    loadingElement.id = 'loadingSpinner';
-    loadingElement.className = 'flex justify-center items-center mt-6 p-4 bg-white rounded-xl shadow-md';
-    loadingElement.innerHTML = `
-        <i class="fas fa-spinner fa-spin text-indigo-500 text-2xl mr-3"></i>
-        <span class="text-indigo-700 font-semibold">Calculando nutrição da receita...</span>
-    `;
-    document.getElementById('main-content').querySelector('.max-w-xl').appendChild(loadingElement);
+    if (modal && modalTitle && modalMessage && closeBtnDiv && confirmBtnsDiv) {
+        modalTitle.textContent = title;
+        modalMessage.textContent = message;
 
-    let totalCalories = 0;
-    let totalProtein = 0;
-    let totalCarbs = 0;
-    let failedIngredients = [];
-    let successfulIngredients = []; // Lista para salvar no histórico
-
-    // Schema JSON para garantir que o modelo retorne dados estruturados
-    const nutrientSchema = {
-        responseMimeType: "application/json",
-        responseSchema: {
-            type: "OBJECT",
-            properties: {
-                "calories": { "type": "NUMBER", "description": "Total de calorias (kcal), arredondado." },
-                "protein": { "type": "NUMBER", "description": "Total de proteína em gramas (g), com uma casa decimal." },
-                "carbs": { "type": "NUMBER", "description": "Total de carboidratos em gramas (g), com uma casa decimal." }
-            },
-            propertyOrdering: ["calories", "protein", "carbs"]
-        }
-    };
-
-    for (const ing of ingredients) {
-        const prompt = `Como um nutricionista, encontre os dados nutricionais e calcule o total de calorias, proteína e carboidratos para ${ing.quantity} ${ing.unit} de ${ing.name}. Considere apenas o macronutriente principal. Retorne apenas o JSON.`;
+        // Mostra o botão "Fechar" e esconde os de "Confirmar"
+        closeBtnDiv.classList.remove('hidden');
+        confirmBtnsDiv.classList.add('hidden');
         
-        try {
-            const nutrientData = await fetchNutrientsWithRetry(prompt, nutrientSchema);
-
-            // Validação básica do retorno
-            if (nutrientData && typeof nutrientData.calories === 'number') {
-                totalCalories += nutrientData.calories;
-                totalProtein += nutrientData.protein;
-                totalCarbs += nutrientData.carbs;
-                
-                successfulIngredients.push({
-                    name: ing.name,
-                    quantity: ing.quantity,
-                    unit: ing.unit,
-                    macros: nutrientData
-                });
-
-            } else {
-                failedIngredients.push(ing.name);
-                console.error(`Falha na validação dos dados para ${ing.name}:`, nutrientData);
-            }
-
-        } catch (error) {
-            failedIngredients.push(ing.name);
-            console.error(`Erro ao buscar dados para ${ing.name}:`, error);
-        }
-    }
-    
-    // Remove o spinner de carregamento
-    loadingElement.remove();
-
-    // Atualiza o DOM com os totais
-    document.getElementById('totalCalories').textContent = totalCalories.toFixed(0);
-    document.getElementById('totalProtein').textContent = totalProtein.toFixed(1) + ' g';
-    document.getElementById('totalCarbs').textContent = totalCarbs.toFixed(1) + ' g';
-    document.getElementById('results').classList.remove('hidden');
-
-    // Habilita/desabilita botões e mostra mensagens de erro
-    document.getElementById('calculateButton').disabled = false;
-    
-    if (successfulIngredients.length > 0) {
-        document.getElementById('saveButton').disabled = false;
-        
-        // Define o estado global da receita calculada para que o botão 'Salvar' possa usá-lo
-        window.currentCalculatedRecipe = {
-            recipeName: ingredients.length > 1 ? 'Nova Receita' : successfulIngredients[0].name,
-            ingredients: successfulIngredients,
-            totals: {
-                calories: totalCalories,
-                protein: totalProtein,
-                carbs: totalCarbs
-            }
-        };
-
-        if (failedIngredients.length > 0) {
-            showMessage("Aviso de Cálculo", `Não foi possível obter dados para: ${failedIngredients.join(', ')}. Os valores exibidos são parciais.`, false);
-        } else {
-            showMessage("Cálculo Concluído", "A análise nutricional da sua receita foi concluída com sucesso!");
-        }
-        
+        modal.classList.remove('hidden');
     } else {
-        document.getElementById('saveButton').disabled = true;
-        showMessage("Erro de Cálculo", "Não foi possível obter dados para nenhum ingrediente. Por favor, verifique a grafia ou tente novamente mais tarde.", true);
+        // Fallback (nunca deve acontecer se o DOM estiver correto)
+        console.error("Componentes do modal não encontrados!");
+        alert(`${title}: ${message}`);
     }
 }
 
 /**
- * Pede o nome da receita e a salva no histórico.
+ * ATUALIZAÇÃO: Exibe o modal de mensagens (Modo Confirmação).
+ * @param {string} title Título do modal.
+ *Por favor, substitua o conteúdo dos seus arquivos `historico.html` e `script.js` por estas novas versões. Os arquivos `index.html` e `calculadora.html` não precisam de alterações.
+ * @param {function} onConfirmCallback Função a ser chamada se o utilizador confirmar.
  */
-function saveRecipePrompt() {
-    if (!window.currentCalculatedRecipe) {
-        showMessage("Erro", "Nenhuma receita calculada para salvar.", true);
+function showConfirmationModal(title, message, onConfirmCallback) {
+    const modal = document.getElementById('messageModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMessage = document.getElementById('modalMessage');
+    const closeBtnDiv = document.getElementById('modal-close-button');
+    const confirmBtnsDiv = document.getElementById('modal-confirm-buttons');
+    const cancelBtn = document.getElementById('modalCancelBtn');
+    const confirmBtn = document.getElementById('modalConfirmBtn');
+
+    if (!modal || !modalTitle || !modalMessage || !closeBtnDiv || !confirmBtnsDiv || !cancelBtn || !confirmBtn) {
+        console.error("Componentes do modal de confirmação não encontrados!");
         return;
     }
 
-    const defaultName = window.currentCalculatedRecipe.recipeName;
-    const recipeName = prompt("Insira o nome desta receita:", defaultName);
+    modalTitle.textContent = title;
+    modalMessage.textContent = message;
 
-    if (recipeName && recipeName.trim() !== '') {
-        window.currentCalculatedRecipe.recipeName = recipeName.trim();
-        addRecipeToHistory(window.currentCalculatedRecipe);
-        showMessage("Receita Gravada", `A receita "${recipeName}" foi registrada no seu histórico de consumo!`);
-        
-        // Redireciona para o histórico após 1.5s
-        setTimeout(() => {
-            window.location.href = 'historico.html';
-        }, 1500);
-        
-    } else if (recipeName !== null) {
-        showMessage("Aviso", "A receita não foi salva pois você cancelou ou deixou o nome vazio.");
-    }
-}
+    // Mostra os botões "Confirmar" e esconde o "Fechar"
+    closeBtnDiv.classList.add('hidden');
+    confirmBtnsDiv.classList.remove('hidden');
 
-// --- INICIALIZAÇÃO DA APLICAÇÃO ---
+    // Remove listeners antigos e define os novos (importante para o callback)
+    // Usamos .cloneNode e .replaceWith para garantir que NENHUM listener antigo permaneça
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    newConfirmBtn.textContent = "Confirmar"; // Garante o texto
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
 
-function initApp() {
-    loadCommonComponents(); // Injeta o cabeçalho e o modal
-    
-    // Roda a lógica específica de cada página
-    const currentPage = document.title;
-    
-    if (currentPage.includes('Calculadora')) {
-        renderIngredientList(); // Inicializa a lista de ingredientes (e botões)
-    } else if (currentPage.includes('Histórico')) {
-        loadHistory(); // Carrega e renderiza o histórico
-    }
-    
-    // Adiciona listener global para fechar o menu ao iniciar
-    document.addEventListener('click', (event) => {
-        const menu = document.getElementById('profileMenu');
-        const trigger = document.getElementById('profileTrigger');
-
-        if (menu && trigger && !menu.classList.contains('hidden')) {
-            // Verifica se o clique foi fora do menu e do trigger
-            if (!trigger.contains(event.target) && !menu.contains(event.target)) {
-                 toggleProfileMenu();
-            }
+    newConfirmBtn.onclick = () => {
+        modal.classList.add('hidden');
+        if (onConfirmCallback) {
+            onConfirmCallback(); // Executa a ação de exclusão
         }
-    });
+    };
 
+    cancelBtn.onclick = () => {
+        modal.classList.add('hidden');
+    };
+
+    modal.classList.remove('hidden');
 }
 
-// Inicializa o aplicativo quando o DOM estiver completamente carregado
-document.addEventListener('DOMContentLoaded', initApp);
+// Fim do script.js

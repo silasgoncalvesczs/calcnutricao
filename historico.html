@@ -1,36 +1,44 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diário Nutricional - Histórico</title>
+    <title>Histórico - Diário Nutricional</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carrega a fonte Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- ATUALIZAÇÃO: Font Awesome necessário para o ícone de lixeira -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- CSS Customizado -->
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLMDJ8u7wI5hT6W58u2v5f2J+6lG0q8P3d2F5f2A5g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-    </style>
+    <!-- Script Principal (deferido) -->
+    <script src="script.js" defer></script>
 </head>
-<body class="min-h-screen">
+<body class="bg-gray-100 font-sans">
 
-    <!-- Placeholder onde o cabeçalho e o modal serão injetados pelo script.js -->
-    <div id="header-placeholder"></div>
-    <div id="message-modal-placeholder"></div>
+    <!-- Placeholder para o Cabeçalho (Injetado pelo JS) -->
+    <div id="main-header-placeholder"></div>
+    
+    <!-- Placeholder para o Modal (Injetado pelo JS) -->
+    <div id="modal-placeholder"></div>
 
-    <main id="main-content" class="p-4 md:p-8 pt-20">
-        <div class="max-w-3xl mx-auto">
-            <h1 class="text-3xl font-extrabold text-gray-900 mb-6 border-b-2 pb-2">Histórico de Consumo</h1>
-
-            <div id="historyContainer" class="space-y-6">
-                <!-- O histórico será injetado aqui -->
-            </div>
-
-            <p id="noHistoryMessage" class="text-center text-gray-500 italic mt-10 p-6 bg-white rounded-xl shadow-md hidden">
-                Você ainda não registrou nenhuma receita. Use a Calculadora para gravar seu primeiro consumo!
-            </p>
+    <!-- Conteúdo Principal: Histórico -->
+    <main id="history-screen" class="pt-24 pb-12 max-w-3xl mx-auto px-4">
+        
+        <!-- Mensagem de "Nenhum Histórico" (controlada pelo JS) -->
+        <div id="noHistoryMessage" class="hidden text-center text-gray-500 py-12">
+            <i class="fas fa-book text-4xl text-gray-400 mb-4"></i>
+            <p class="text-lg">O seu histórico está vazio.</p>
+            <p>As refeições que gravar na calculadora aparecerão aqui.</p>
         </div>
-    </main>
 
-    <script src="script.js"></script>
+        <!-- Container da Lista de Histórico (preenchido pelo JS) -->
+        <div id="historyListContainer" class="space-y-6">
+            <!-- Os dias e refeições serão injetados aqui pelo script.js -->
+        </div>
+
+    </main>
 </body>
 </html>

@@ -1,76 +1,62 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Diário Nutricional - Início</title>
+    <title>Diário Nutricional - Home</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome (Ícones) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Folha de Estilos CSS -->
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLMDJ8u7wI5hT6W58u2v5f2J+6lG0q8P3d2F5f2A5g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-    </style>
+    <!-- Script Principal (deferido) -->
+    <script src="script.js" defer></script>
 </head>
-<body class="min-h-screen">
+<body class="bg-gray-100 font-sans">
 
-    <!-- Placeholder onde o cabeçalho e o modal serão injetados pelo script.js -->
-    <div id="header-placeholder"></div>
-    <div id="message-modal-placeholder"></div>
+    <!-- Placeholder para o Cabeçalho (Injetado pelo JS) -->
+    <header id="main-header-placeholder"></header>
 
-    <main id="main-content" class="p-4 md:p-8 pt-20">
-        <div class="max-w-xl mx-auto">
-            <h1 class="text-3xl font-extrabold text-gray-900 mb-6 border-b-2 pb-2">Meu Diário Nutricional</h1>
+    <!-- Placeholder para o Modal (Injetado pelo JS) -->
+    <div id="modal-placeholder"></div>
 
-            <!-- Card de Navegação Principal -->
-            <div class="space-y-4">
-                <a href="calculadora.html" class="block">
-                    <div class="bg-indigo-600 hover:bg-indigo-700 text-white p-6 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.02] cursor-pointer">
-                        <div class="flex items-center space-x-4">
-                            <i class="fas fa-calculator text-3xl"></i>
-                            <div>
-                                <h2 class="text-xl font-bold">Calcular Receita</h2>
-                                <p class="text-sm opacity-90">Descubra as calorias, proteínas e carboidratos de qualquer prato ou ingrediente.</p>
-                            </div>
-                        </div>
-                    </div>
-                </a>
+    <!-- Conteúdo Principal: Home -->
+    <main id="home-screen" class="p-4 md:p-6 max-w-4xl mx-auto mt-20">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                <a href="historico.html" class="block">
-                    <div class="bg-green-600 hover:bg-green-700 text-white p-6 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.02] cursor-pointer">
-                        <div class="flex items-center space-x-4">
-                            <i class="fas fa-book-medical text-3xl"></i>
-                            <div>
-                                <h2 class="text-xl font-bold">Ver Histórico de Consumo</h2>
-                                <p class="text-sm opacity-90">Acompanhe as receitas ingeridas, agrupadas por dia.</p>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            </div>
+            <!-- Card: Calcular Receita -->
+            <a href="calculadora.html" class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex items-center space-x-4">
+                <div class="p-3 bg-purple-100 rounded-full">
+                    <i class="fas fa-calculator text-2xl text-purple-600"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">Calcular Receita</h2>
+                    <p class="text-gray-600">Adicione ingredientes e veja os macros.</p>
+                </div>
+            </a>
 
-            <!-- Dicas -->
-            <div class="mt-10 p-6 bg-white rounded-xl shadow-md border border-gray-100">
-                <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <i class="fas fa-lightbulb text-yellow-500 mr-2"></i> Dicas de Uso
-                </h3>
-                <ul class="text-gray-600 text-sm space-y-2">
-                    <li class="flex items-start">
-                        <i class="fas fa-check-circle text-indigo-500 mt-1 mr-2"></i>
-                        Use o botão "Calcular Receita" para simular a nutrição de pratos complexos.
-                    </li>
-                    <li class="flex items-start">
-                        <i class="fas fa-check-circle text-indigo-500 mt-1 mr-2"></i>
-                        Clique no seu avatar no canto superior direito para editar seu nome ou foto de perfil.
-                    </li>
-                    <li class="flex items-start">
-                        <i class="fas fa-check-circle text-indigo-500 mt-1 mr-2"></i>
-                        Após calcular uma receita, clique em "Gravar Consumo" para que ela apareça no seu Histórico.
-                    </li>
-                </ul>
-            </div>
+            <!-- Card: Ver Histórico -->
+            <a href="historico.html" class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex items-center space-x-4">
+                <div class="p-3 bg-green-100 rounded-full">
+                    <i class="fas fa-book-medical text-2xl text-green-600"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">Ver Histórico</h2>
+                    <p class="text-gray-600">Veja o seu diário de consumo.</p>
+                </div>
+            </a>
+
         </div>
+
+        <!-- Futuros Módulos podem ser adicionados aqui -->
+        <div class="mt-8 p-6 bg-white rounded-xl shadow-lg">
+            <h3 class="text-lg font-semibold text-gray-700">Bem-vindo ao seu Diário!</h3>
+            <p class="text-gray-600 mt-2">Use os módulos acima para começar a monitorizar a sua nutrição. O seu perfil pode ser editado no canto superior direito.</p>
+        </div>
+
     </main>
 
-    <script src="script.js"></script>
 </body>
 </html>
