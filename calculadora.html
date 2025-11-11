@@ -1,159 +1,102 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nutri.App - Calcular</title>
+    <title>Diário Nutricional - Calculadora</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLMDJ8u7wI5hT6W58u2v5f2J+6lG0q8P3d2F5f2A5g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
-        html { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen" onclick="handleGlobalClick(event)">
+<body class="min-h-screen">
 
-    <!-- Header Fixo -->
-    <header class="bg-white shadow-md sticky top-0 z-10">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-4">
-                <!-- Botão Voltar -->
-                <a href="index.html" class="flex items-center text-primary-dark hover:text-primary-hover transition-colors font-semibold">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    Voltar
-                </a>
-                
-                <!-- Bloco de Perfil e Menu Suspenso -->
-                <div class="relative flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition duration-150 cursor-pointer" id="profile-container" onclick="toggleProfileMenu(event)">
-                    <img id="profileAvatar" class="w-8 h-8 rounded-full object-cover border-2 border-gray-200" 
-                        src="https://placehold.co/32x32/f0f9ff/1d4ed8?text=V" 
-                        alt="Avatar" onerror="this.onerror=null; this.src='https://placehold.co/32x32/f0f9ff/1d4ed8?text=V';">
-                    <span id="profileNameDisplay" class="text-sm font-semibold text-gray-700 hidden sm:block">Visitante</span>
-                    
-                    <!-- Menu Suspenso (Dropdown) -->
-                    <div id="profileMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-1 z-20 border border-gray-100 hidden top-full">
-                        <span class="px-4 py-2 text-xs text-gray-500 block border-b mb-1">Configurações de Perfil</span>
-                        <button onclick="changeProfileName()" class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition duration-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zm-3.182-1.99a2 2 0 00-2.828 0L3 8.172V11h2.828l4.376-4.376-2.828-2.828z" /></svg>
-                            Editar Nome
-                        </button>
-                        <button onclick="changeAvatarUrl()" class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition duration-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" /></svg>
-                            Mudar Avatar
-                        </button>
+    <!-- Placeholder onde o cabeçalho e o modal serão injetados pelo script.js -->
+    <div id="header-placeholder"></div>
+    <div id="message-modal-placeholder"></div>
+
+    <main id="main-content" class="p-4 md:p-8 pt-20">
+        <div class="max-w-xl mx-auto bg-white p-6 rounded-xl shadow-lg">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">Calculadora de Nutrientes</h1>
+
+            <!-- Seção de Adicionar Ingrediente -->
+            <div class="mb-6 p-4 border rounded-lg bg-gray-50">
+                <h3 class="text-lg font-semibold mb-3 text-gray-700">Adicionar Ingrediente</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div class="md:col-span-2">
+                        <label for="ingredientName" class="block text-sm font-medium text-gray-700">Nome (ex: Arroz, Ovo)</label>
+                        <input type="text" id="ingredientName" placeholder="Nome do Ingrediente" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
-                </div>
-
-            </div>
-        </div>
-    </header>
-
-    <main class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-        
-        <!-- TELA DE CÁLCULO DE RECEITAS -->
-        <section id="calculator-screen" class="p-6 bg-white rounded-xl shadow-lg transition-opacity duration-300">
-            <h2 class="text-3xl font-bold text-gray-800 mb-6">Calculadora Nutricional</h2>
-
-            <!-- Formulário de Ingredientes -->
-            <div class="mb-8 p-5 border border-gray-100 bg-gray-50 rounded-lg">
-                <h3 class="text-xl font-semibold text-gray-700 mb-4">Adicionar Ingrediente</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 items-end">
-                    <!-- Nome -->
-                    <div class="col-span-full sm:col-span-2">
-                        <label for="ingredientName" class="block text-sm font-medium text-gray-700">Nome do Ingrediente</label>
-                        <input type="text" id="ingredientName" placeholder="Ex: Arroz, Ovo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                    <div>
+                        <label for="ingredientQuantity" class="block text-sm font-medium text-gray-700">Quantidade</label>
+                        <input type="number" id="ingredientQuantity" placeholder="100" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
-                    <!-- Quantidade -->
-                    <div class="col-span-2 sm:col-span-1">
-                        <label for="quantity" class="block text-sm font-medium text-gray-700">Quantidade</label>
-                        <input type="number" id="quantity" value="100" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border text-center">
-                    </div>
-                    <!-- Unidade -->
-                    <div class="col-span-2 sm:col-span-1">
-                        <label for="unit" class="block text-sm font-medium text-gray-700">Unidade</label>
-                        <select id="unit" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
-                            <option value="gramas">gramas</option>
-                            <option value="mililitros">mililitros</option>
-                            <option value="colheres de sopa">colheres de sopa</option>
-                            <option value="colheres de cha">colheres de chá</option>
+                    <div>
+                        <label for="ingredientUnit" class="block text-sm font-medium text-gray-700">Unidade</label>
+                        <select id="ingredientUnit" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="gramas">g (gramas)</option>
+                            <option value="mililitros">ml (mililitros)</option>
                             <option value="unidades">unidades</option>
                             <option value="xícaras">xícaras</option>
+                            <option value="colheres de sopa">colh. sopa</option>
                         </select>
                     </div>
-                    <!-- Botão Adicionar -->
-                    <button onclick="addIngredient()" class="col-span-full sm:col-span-1 bg-primary-dark text-white py-2 px-4 rounded-lg font-bold hover:bg-primary-hover transition duration-300 shadow-lg">Adicionar</button>
                 </div>
+                <button onclick="addIngredient()" class="mt-4 w-full md:w-auto bg-indigo-500 text-white py-2 px-4 rounded-lg hover:bg-indigo-600 transition duration-150 shadow-md">
+                    <i class="fas fa-plus mr-2"></i> Adicionar à Receita
+                </button>
             </div>
 
             <!-- Lista de Ingredientes -->
-            <div class="mb-8">
-                <h3 class="text-xl font-semibold text-gray-700 mb-4">Ingredientes Adicionados (<span id="ingredientCount">0</span>)</h3>
-                <p id="noIngredientsMessage" class="text-gray-500 italic text-center py-4">Adicione ingredientes para começar o cálculo.</p>
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold mb-3 text-gray-700 flex justify-between items-center">
+                    Receita Atual (<span id="ingredientCount">0</span> itens)
+                </h3>
                 <div id="ingredientList" class="space-y-3">
-                    <!-- Ingredientes serão inseridos aqui pelo JS -->
+                    <!-- Ingredientes serão injetados aqui -->
+                    <p id="emptyListMessage" class="text-sm text-gray-500 italic p-3 bg-gray-50 rounded-md">
+                        Nenhum ingrediente adicionado.
+                    </p>
                 </div>
             </div>
 
             <!-- Botões de Ação -->
-            <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 mb-8">
-                <button id="calculateButton" onclick="calculateTotal()" class="flex-1 bg-green-500 text-white py-3 rounded-xl font-extrabold text-lg hover:bg-green-600 transition duration-300 shadow-xl flex items-center justify-center">
-                    Calcular Nutrição Total
+            <div class="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3 mt-6 border-t pt-4">
+                <button onclick="calculateTotal()" id="calculateButton" class="w-full md:flex-1 bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition duration-150 shadow-lg font-semibold disabled:bg-gray-400" disabled>
+                    <i class="fas fa-flask mr-2"></i> Calcular Nutrição Total
                 </button>
-                <button onclick="resetApp()" class="sm:w-40 bg-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-300 transition duration-300 shadow-lg">
-                    Limpar Lista
+                <button onclick="saveRecipePrompt()" id="saveButton" class="w-full md:flex-1 bg-yellow-500 text-white py-3 rounded-lg hover:bg-yellow-600 transition duration-150 shadow-lg font-semibold disabled:bg-gray-400" disabled>
+                    <i class="fas fa-save mr-2"></i> Gravar Consumo
                 </button>
             </div>
+
 
             <!-- Resultados -->
-            <div id="resultsSection" class="hidden p-6 bg-blue-50 border border-blue-200 rounded-xl shadow-inner">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 space-y-3 sm:space-y-0">
-                    <h3 class="text-2xl font-bold text-blue-800">Totais Nutricionais</h3>
-                    <!-- BOTÃO: Gravar Receita -->
-                    <button onclick="addRecipeToHistory()" class="bg-indigo-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-indigo-700 transition duration-300 shadow-md">
-                        Gravar Consumo
-                    </button>
-                </div>
-                
-                <div class="grid grid-cols-3 gap-4 text-center">
-                    <div class="p-4 bg-white rounded-lg shadow-sm border border-blue-100">
-                        <p class="text-xs font-medium text-gray-500 uppercase">Calorias (Kcal)</p>
-                        <p id="totalCalories" class="text-xl sm:text-3xl font-extrabold text-blue-700 mt-1">0</p>
+            <div id="results" class="mt-8 p-6 bg-indigo-50 border-2 border-indigo-200 rounded-xl shadow-inner hidden">
+                <h3 class="text-xl font-bold text-indigo-800 mb-4 flex items-center">
+                    <i class="fas fa-chart-bar mr-2"></i> Resultado Nutricional
+                </h3>
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div class="p-3 bg-white rounded-lg shadow-sm">
+                        <p class="text-2xl font-extrabold text-red-600" id="totalCalories">0</p>
+                        <p class="text-sm text-gray-600">Calorias (kcal)</p>
                     </div>
-                    <div class="p-4 bg-white rounded-lg shadow-sm border border-blue-100">
-                        <p class="text-xs font-medium text-gray-500 uppercase">Proteína (g)</p>
-                        <p id="totalProtein" class="text-xl sm:text-3xl font-extrabold text-blue-700 mt-1">0.0</p>
+                    <div class="p-3 bg-white rounded-lg shadow-sm">
+                        <p class="text-2xl font-extrabold text-blue-600" id="totalProtein">0 g</p>
+                        <p class="text-sm text-gray-600">Proteína (g)</p>
                     </div>
-                    <div class="p-4 bg-white rounded-lg shadow-sm border border-blue-100">
-                        <p class="text-xs font-medium text-gray-500 uppercase">Carboidratos (g)</p>
-                        <p id="totalCarbs" class="text-xl sm:text-3xl font-extrabold text-blue-700 mt-1">0.0</p>
+                    <div class="col-span-2 p-3 bg-white rounded-lg shadow-sm">
+                        <p class="text-2xl font-extrabold text-orange-600" id="totalCarbs">0 g</p>
+                        <p class="text-sm text-gray-600">Carboidratos (g)</p>
                     </div>
                 </div>
-
-                <!-- Fontes -->
-                <p id="citation" class="text-xs text-gray-500 mt-4 italic break-all"></p>
             </div>
 
-        </section>
-        
-        <!-- Modal de Mensagens (Alerta/Erro) -->
-        <div id="messageModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 items-center justify-center z-50 transition-opacity duration-300">
-            <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-sm transform scale-100 transition-transform duration-300">
-                <h3 id="modalTitle" class="text-xl font-bold text-gray-800 mb-3">Título</h3>
-                <p id="modalMessage" class="text-gray-600 mb-5"></p>
-                <button onclick="closeModal()" class="w-full bg-primary-dark text-white py-2 rounded-lg font-bold hover:bg-primary-hover transition duration-300">Fechar</button>
-            </div>
         </div>
-
     </main>
 
     <script src="script.js"></script>
-    <script>
-        // Funções de inicialização da Calculadora
-        document.addEventListener('DOMContentLoaded', () => {
-            renderProfile();
-            renderIngredientList(); // Inicializa lista de ingredientes na tela
-        });
-    </script>
 </body>
 </html>

@@ -1,83 +1,36 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nutri.App - Histórico</title>
+    <title>Diário Nutricional - Histórico</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLMDJ8u7wI5hT6W58u2v5f2J+6lG0q8P3d2F5f2A5g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
-        html { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen" onclick="handleGlobalClick(event)">
+<body class="min-h-screen">
 
-    <!-- Header Fixo -->
-    <header class="bg-white shadow-md sticky top-0 z-10">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-4">
-                <!-- Botão Voltar -->
-                <a href="index.html" class="flex items-center text-primary-dark hover:text-primary-hover transition-colors font-semibold">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    Voltar
-                </a>
-                
-                <!-- Bloco de Perfil e Menu Suspenso -->
-                <div class="relative flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition duration-150 cursor-pointer" id="profile-container" onclick="toggleProfileMenu(event)">
-                    <img id="profileAvatar" class="w-8 h-8 rounded-full object-cover border-2 border-gray-200" 
-                        src="https://placehold.co/32x32/f0f9ff/1d4ed8?text=V" 
-                        alt="Avatar" onerror="this.onerror=null; this.src='https://placehold.co/32x32/f0f9ff/1d4ed8?text=V';">
-                    <span id="profileNameDisplay" class="text-sm font-semibold text-gray-700 hidden sm:block">Visitante</span>
-                    
-                    <!-- Menu Suspenso (Dropdown) -->
-                    <div id="profileMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-1 z-20 border border-gray-100 hidden top-full">
-                        <span class="px-4 py-2 text-xs text-gray-500 block border-b mb-1">Configurações de Perfil</span>
-                        <button onclick="changeProfileName()" class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition duration-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zm-3.182-1.99a2 2 0 00-2.828 0L3 8.172V11h2.828l4.376-4.376-2.828-2.828z" /></svg>
-                            Editar Nome
-                        </button>
-                        <button onclick="changeAvatarUrl()" class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition duration-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" /></svg>
-                            Mudar Avatar
-                        </button>
-                    </div>
-                </div>
+    <!-- Placeholder onde o cabeçalho e o modal serão injetados pelo script.js -->
+    <div id="header-placeholder"></div>
+    <div id="message-modal-placeholder"></div>
 
+    <main id="main-content" class="p-4 md:p-8 pt-20">
+        <div class="max-w-3xl mx-auto">
+            <h1 class="text-3xl font-extrabold text-gray-900 mb-6 border-b-2 pb-2">Histórico de Consumo</h1>
+
+            <div id="historyContainer" class="space-y-6">
+                <!-- O histórico será injetado aqui -->
             </div>
+
+            <p id="noHistoryMessage" class="text-center text-gray-500 italic mt-10 p-6 bg-white rounded-xl shadow-md hidden">
+                Você ainda não registrou nenhuma receita. Use a Calculadora para gravar seu primeiro consumo!
+            </p>
         </div>
-    </header>
-
-    <main class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-        
-        <!-- TELA DE HISTÓRICO -->
-        <section id="history-screen" class="p-6 bg-white rounded-xl shadow-lg transition-opacity duration-300">
-            <h2 class="text-3xl font-bold text-gray-800 mb-6">Histórico de Consumo</h2>
-            <div id="historyList" class="space-y-8">
-                <!-- O histórico será inserido aqui pelo JS -->
-                <p id="noHistoryMessage" class="text-gray-500 italic text-center py-10">Nenhuma receita foi registrada ainda. Calcule e grave um consumo!</p>
-            </div>
-        </section>
-
-        <!-- Modal de Mensagens (Alerta/Erro) -->
-        <div id="messageModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 items-center justify-center z-50 transition-opacity duration-300">
-            <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-sm transform scale-100 transition-transform duration-300">
-                <h3 id="modalTitle" class="text-xl font-bold text-gray-800 mb-3">Título</h3>
-                <p id="modalMessage" class="text-gray-600 mb-5"></p>
-                <button onclick="closeModal()" class="w-full bg-primary-dark text-white py-2 rounded-lg font-bold hover:bg-primary-hover transition duration-300">Fechar</button>
-            </div>
-        </div>
-
     </main>
 
     <script src="script.js"></script>
-    <script>
-        // Funções de inicialização do Histórico
-        document.addEventListener('DOMContentLoaded', () => {
-            renderProfile();
-            loadHistory(); // Carrega o histórico ao entrar na tela
-        });
-    </script>
 </body>
 </html>

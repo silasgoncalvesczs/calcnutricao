@@ -1,89 +1,76 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nutri.App - Home</title>
+    <title>Diário Nutricional - Início</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLMDJ8u7wI5hT6W58u2v5f2J+6lG0q8P3d2F5f2A5g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
-        html { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen" onclick="handleGlobalClick(event)">
+<body class="min-h-screen">
 
-    <!-- Header Fixo -->
-    <header class="bg-white shadow-md sticky top-0 z-10">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-4">
-                <!-- Título da Tela -->
-                <h1 class="text-2xl font-extrabold text-primary-dark">Home</h1>
-                
-                <!-- Bloco de Perfil e Menu Suspenso -->
-                <div class="relative flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition duration-150 cursor-pointer" id="profile-container" onclick="toggleProfileMenu(event)">
-                    <img id="profileAvatar" class="w-8 h-8 rounded-full object-cover border-2 border-gray-200" 
-                        src="https://placehold.co/32x32/f0f9ff/1d4ed8?text=V" 
-                        alt="Avatar" onerror="this.onerror=null; this.src='https://placehold.co/32x32/f0f9ff/1d4ed8?text=V';">
-                    <span id="profileNameDisplay" class="text-sm font-semibold text-gray-700 hidden sm:block">Visitante</span>
-                    
-                    <!-- Menu Suspenso (Dropdown) -->
-                    <div id="profileMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-1 z-20 border border-gray-100 hidden top-full">
-                        <span class="px-4 py-2 text-xs text-gray-500 block border-b mb-1">Configurações de Perfil</span>
-                        <button onclick="changeProfileName()" class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition duration-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zm-3.182-1.99a2 2 0 00-2.828 0L3 8.172V11h2.828l4.376-4.376-2.828-2.828z" /></svg>
-                            Editar Nome
-                        </button>
-                        <button onclick="changeAvatarUrl()" class="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition duration-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" /></svg>
-                            Mudar Avatar
-                        </button>
+    <!-- Placeholder onde o cabeçalho e o modal serão injetados pelo script.js -->
+    <div id="header-placeholder"></div>
+    <div id="message-modal-placeholder"></div>
+
+    <main id="main-content" class="p-4 md:p-8 pt-20">
+        <div class="max-w-xl mx-auto">
+            <h1 class="text-3xl font-extrabold text-gray-900 mb-6 border-b-2 pb-2">Meu Diário Nutricional</h1>
+
+            <!-- Card de Navegação Principal -->
+            <div class="space-y-4">
+                <a href="calculadora.html" class="block">
+                    <div class="bg-indigo-600 hover:bg-indigo-700 text-white p-6 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.02] cursor-pointer">
+                        <div class="flex items-center space-x-4">
+                            <i class="fas fa-calculator text-3xl"></i>
+                            <div>
+                                <h2 class="text-xl font-bold">Calcular Receita</h2>
+                                <p class="text-sm opacity-90">Descubra as calorias, proteínas e carboidratos de qualquer prato ou ingrediente.</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </a>
+
+                <a href="historico.html" class="block">
+                    <div class="bg-green-600 hover:bg-green-700 text-white p-6 rounded-xl shadow-lg transition duration-300 transform hover:scale-[1.02] cursor-pointer">
+                        <div class="flex items-center space-x-4">
+                            <i class="fas fa-book-medical text-3xl"></i>
+                            <div>
+                                <h2 class="text-xl font-bold">Ver Histórico de Consumo</h2>
+                                <p class="text-sm opacity-90">Acompanhe as receitas ingeridas, agrupadas por dia.</p>
+                            </div>
+                        </div>
+                    </div>
+                </a>
             </div>
-        </div>
-    </header>
 
-    <main class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-        
-        <!-- TELA INICIAL (HOME) -->
-        <section id="home-screen" class="p-6 bg-white rounded-xl shadow-lg transition-opacity duration-300">
-            <div class="text-center py-10">
-                <h2 class="text-4xl font-bold text-gray-800 mb-4">Bem-vindo(a) ao Nutri.App</h2>
-                <p class="text-lg text-gray-600 mb-10">Sua ferramenta completa para cálculo nutricional e acompanhamento de consumo.</p>
-                
-                <!-- Botões de Acesso Rápido -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-                    <div class="p-6 bg-green-50 rounded-lg border border-green-200 shadow-md">
-                        <h3 class="text-xl font-semibold text-green-700 mb-3">Calculadora Rápida</h3>
-                        <p class="text-gray-600 mb-4">Descubra as macros de qualquer ingrediente ou receita.</p>
-                        <a href="calculadora.html" class="inline-block w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition duration-300 shadow-lg">Calcular Agora</a>
-                    </div>
-
-                    <div class="p-6 bg-blue-50 rounded-lg border border-blue-200 shadow-md">
-                        <h3 class="text-xl font-semibold text-blue-700 mb-3">Meu Diário</h3>
-                        <p class="text-gray-600 mb-4">Acompanhe e visualize suas refeições registradas por dia.</p>
-                        <a href="historico.html" class="inline-block w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition duration-300 shadow-lg">Ver Histórico</a>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Modal de Mensagens (Alerta/Erro) -->
-        <div id="messageModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-75 items-center justify-center z-50 transition-opacity duration-300">
-            <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-sm transform scale-100 transition-transform duration-300">
-                <h3 id="modalTitle" class="text-xl font-bold text-gray-800 mb-3">Título</h3>
-                <p id="modalMessage" class="text-gray-600 mb-5"></p>
-                <button onclick="closeModal()" class="w-full bg-primary-dark text-white py-2 rounded-lg font-bold hover:bg-primary-hover transition duration-300">Fechar</button>
+            <!-- Dicas -->
+            <div class="mt-10 p-6 bg-white rounded-xl shadow-md border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                    <i class="fas fa-lightbulb text-yellow-500 mr-2"></i> Dicas de Uso
+                </h3>
+                <ul class="text-gray-600 text-sm space-y-2">
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-indigo-500 mt-1 mr-2"></i>
+                        Use o botão "Calcular Receita" para simular a nutrição de pratos complexos.
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-indigo-500 mt-1 mr-2"></i>
+                        Clique no seu avatar no canto superior direito para editar seu nome ou foto de perfil.
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-indigo-500 mt-1 mr-2"></i>
+                        Após calcular uma receita, clique em "Gravar Consumo" para que ela apareça no seu Histórico.
+                    </li>
+                </ul>
             </div>
         </div>
     </main>
 
     <script src="script.js"></script>
-    <script>
-        // Funções específicas da Home para inicialização
-        document.addEventListener('DOMContentLoaded', () => {
-            renderProfile();
-        });
-    </script>
 </body>
 </html>
