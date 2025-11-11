@@ -1,6 +1,9 @@
 // Variáveis de ambiente
-// A chave API foi removida e será gerenciada pelo servidor proxy.
-const PROXY_URL = "/api/calculate"; // Novo endpoint do servidor proxy.
+// ATENÇÃO: Se estiver executando este código localmente (fora do Canvas),
+// você DEVE inserir sua chave API da Google no lugar das aspas vazias ("").
+// Para o Canvas funcionar, ela deve ser uma string vazia.
+const apiKey = "AIzaSyATeUV4-8VkKFidO2dy2Ifl_MO40aznmmE"; // <--- Sua chave API deve ir aqui!
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
 let ingredients = [];
 
@@ -94,7 +97,7 @@ window.closeModal = closeModal;
 // --- Lógica da API Gemini para Cálculo Nutricional ---
 
 /**
- * Realiza a chamada ao endpoint de proxy do servidor para obter dados nutricionais.
+ * Realiza a chamada à API Gemini com Google Search para obter dados nutricionais.
  * Implementa Retry com Exponential Backoff.
  */
 async function fetchNutrientsWithRetry(ingredient) {
@@ -103,35 +106,80 @@ async function fetchNutrientsWithRetry(ingredient) {
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
-            // Chamada para o nosso servidor proxy seguro, que fará a chamada real à API Gemini.
-            const response = await fetch(PROXY_URL, {
+            // Novo prompt sem a configuração de responseMimeType
+            const userQuery = `Usando dados de pesquisa, forneça as calorias totais (Kcal), a proteína em gramas (protein_g) e os carboidratos em gramas (carbs_g) contidos em ${ingredient.quantity} ${ingredient.unit} de ${ingredient.name} cru ou cozido (o mais apropriado). Responda APENAS com um objeto JSON, sem texto explicativo ou markdown. O JSON deve ter exatamente esta estrutura: {"calories": [valor], "protein_g": [valor], "carbs_g": [valor]}.`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }], // Habilita pesquisa para dados nutricionais
+                // O bloco generationConfig com responseMimeType foi removido para resolver o erro 400
+            };
+
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                // Enviamos APENAS o ingrediente para o servidor
-                body: JSON.stringify({ ingredient: ingredient }) 
+                body: JSON.stringify(payload)
             });
 
             if (!response.ok) {
-                // Se o proxy retornar um erro (ex: 500, 404), ele contém a mensagem de erro.
-                let errorBody = "";
+                // Tenta ler o corpo da resposta de erro para obter detalhes da API
+                let errorDetail = "";
                 try {
-                    errorBody = await response.text();
+                    const errorBody = await response.text();
+                    console.error("API Error Response Body:", errorBody);
+                    // Adiciona um trecho da mensagem de erro no modal para diagnóstico
+                    errorDetail = `\nDetalhe (Console): Verifique o console para mais detalhes (código ${response.status}).`; 
                 } catch (e) {
-                    errorBody = `Erro HTTP: ${response.status}`;
+                    errorDetail = "\nDetalhe: Não foi possível ler o corpo da resposta de erro.";
                 }
-                console.error("Proxy Error Response:", errorBody);
-                throw new Error(`O servidor proxy retornou um erro: ${response.status}. Detalhe: ${errorBody.substring(0, 100)}...`);
+                
+                throw new Error(`A resposta da API falhou com status: ${response.status}${errorDetail}`);
             }
 
-            // O proxy deve retornar um objeto JSON pronto
             const result = await response.json();
             
-            // Verifica se o JSON retornado pelo PROXY é válido e tem a estrutura esperada
-            if (isNaN(result.calories) || isNaN(result.protein_g) || isNaN(result.carbs_g)) {
-                 throw new Error("Resposta do proxy mal formada ou incompleta.");
+            // O modelo agora retorna o JSON como uma string de texto, que precisamos analisar
+            const textPart = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            const groundingMetadata = result.candidates?.[0]?.groundingMetadata;
+
+            if (!textPart) {
+                throw new Error("Resposta da API vazia ou mal formatada.");
             }
 
-            return result; // Retorna o JSON processado (inclui 'sources')
+            // O modelo pode envolver o JSON com ```json...``` ou apenas retornar o JSON bruto.
+            // Tentamos extrair o JSON se estiver envolto em markdown.
+            let jsonString = textPart.trim();
+            if (jsonString.startsWith('```')) {
+                const match = jsonString.match(/```json\n([\s\S]*?)\n```/);
+                if (match && match[1]) {
+                    jsonString = match[1].trim();
+                } else {
+                    // Tenta extrair apenas o JSON bruto se for malformado (ex: ```\n{...}```)
+                    jsonString = jsonString.replace(/```json|```/g, '').trim();
+                }
+            }
+
+
+            const jsonResponse = JSON.parse(jsonString);
+
+            if (isNaN(jsonResponse.calories) || isNaN(jsonResponse.protein_g) || isNaN(jsonResponse.carbs_g)) {
+                 throw new Error("JSON retornado não contém todos os campos numéricos necessários.");
+            }
+
+            let sources = [];
+            if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                sources = groundingMetadata.groundingAttributions
+                    .map(attr => ({
+                        uri: attr.web?.uri,
+                        title: attr.web?.title,
+                    }))
+                    .filter(source => source.uri && source.title);
+            }
+
+            return { 
+                ...jsonResponse,
+                sources
+            };
 
         } catch (error) {
             lastError = error;
@@ -180,8 +228,12 @@ async function calculateTotal() {
             });
 
         } catch (error) {
-            // Exibe a mensagem de erro retornada pelo servidor proxy ou pela falha de rede/parse
-            showModal("Erro de Cálculo", `Não foi possível obter dados para: ${ingredient.name}. Por favor, verifique a grafia ou tente novamente mais tarde. (${error.message})`);
+            // Verifica se o erro é o 400 específico, senão, exibe a mensagem de erro geral
+            const errorMessage = error.message.includes('A resposta da API falhou com status: 400') && !error.message.includes('Detalhe')
+                ? `Erro no formato da resposta. Verifique se o ingrediente possui dados nutricionais disponíveis na web.`
+                : error.message;
+
+            showModal("Erro de Cálculo", `Não foi possível obter dados para: ${ingredient.name}. Por favor, verifique a grafia ou tente novamente mais tarde. (${errorMessage})`);
             calculateButton.innerHTML = originalButtonContent;
             calculateButton.disabled = false;
             return; // Interrompe se houver falha crítica
