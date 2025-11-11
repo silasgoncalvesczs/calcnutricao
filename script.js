@@ -79,7 +79,8 @@ const defaultProfile = {
 function getProfileFromLocalStorage() {
     try {
         const profileJson = localStorage.getItem('nutriDiaryProfile');
-        return profileJson ? JSON.parse(profileJson) : defaultProfile;
+        const profile = profileJson ? JSON.parse(profileJson) : defaultProfile;
+        return profile;
     } catch (e) {
         console.error("Erro ao ler perfil do localStorage:", e);
         return defaultProfile;
@@ -152,7 +153,9 @@ window.changeAvatarUrl = changeAvatarUrl;
 function getHistoryFromLocalStorage() {
     try {
         const historyJson = localStorage.getItem('nutriDiaryHistory');
-        return historyJson ? JSON.parse(historyJson) : [];
+        const history = historyJson ? JSON.parse(historyJson) : [];
+        console.log("DEBUG: Histórico lido do localStorage (Total de itens):", history.length); 
+        return history;
     } catch (e) {
         console.error("Erro ao ler histórico do localStorage:", e);
         return [];
@@ -162,6 +165,7 @@ function getHistoryFromLocalStorage() {
 function saveHistoryToLocalStorage(history) {
     try {
         localStorage.setItem('nutriDiaryHistory', JSON.stringify(history));
+        console.log("DEBUG: Histórico SALVO no localStorage. Novo total:", history.length);
     } catch (e) {
         console.error("Erro ao salvar histórico no localStorage:", e);
         showModal("Erro de Armazenamento", "Não foi possível salvar o histórico. O armazenamento local pode estar cheio ou desativado.");
@@ -227,9 +231,8 @@ function confirmSaveRecipe() {
 
     const currentHistory = getHistoryFromLocalStorage();
     currentHistory.push(newEntry);
-    saveHistoryToLocalStorage(currentHistory);
+    saveHistoryToLocalStorage(currentHistory); // Chama o save com log
 
-    showModal("Sucesso!", `A receita "${recipeName}" foi gravada no seu histórico de consumo.`);
     // Redireciona para o histórico após salvar
     window.location.href = "historico.html";
 }
@@ -243,11 +246,16 @@ window.confirmSaveRecipe = confirmSaveRecipe;
 function loadHistory() {
     if (!historyListDiv) return; // Só executa se estiver na página historico.html
 
-    const history = getHistoryFromLocalStorage();
+    const history = getHistoryFromLocalStorage(); // Leitura com log
+
     historyListDiv.innerHTML = '';
     
     const noHistoryMessage = document.getElementById('noHistoryMessage');
-    noHistoryMessage.classList.toggle('hidden', history.length > 0);
+    
+    // CORREÇÃO: Verifica se o elemento existe antes de tentar manipular classList
+    if (noHistoryMessage) {
+        noHistoryMessage.classList.toggle('hidden', history.length > 0);
+    }
 
     if (history.length === 0) {
         return;
@@ -397,9 +405,14 @@ window.confirmDeleteRecipe = confirmDeleteRecipe;
 // --- Gerenciamento de Ingredientes na Calculadora (calculadora.html) ---
 
 function updateIngredientCount() {
-    if (!ingredientCount) return;
+    // Verifica se os elementos da calculadora existem
+    if (!document.getElementById('ingredientCount')) return; 
     document.getElementById('ingredientCount').textContent = ingredients.length;
-    noIngredientsMessage.classList.toggle('hidden', ingredients.length > 0);
+    
+    // CORREÇÃO: Verifica se o elemento noIngredientsMessage existe antes de usar.
+    if (noIngredientsMessage) {
+        noIngredientsMessage.classList.toggle('hidden', ingredients.length > 0);
+    }
 }
 
 function renderIngredientList() {
@@ -650,6 +663,42 @@ function resetApp() {
 }
 
 window.resetApp = resetApp;
+
+// --- Gerenciamento de Ingredientes na Calculadora (calculadora.html) ---
+
+function addIngredient() {
+    if (!ingredientNameInput) return; // Só executa na calculadora
+
+    const name = ingredientNameInput.value.trim().toLowerCase();
+    const quantity = parseFloat(quantityInput.value);
+    const unit = unitSelect.value;
+
+    if (!name || isNaN(quantity) || quantity <= 0) {
+        showModal("Erro de Entrada", "Por favor, insira um nome de ingrediente válido e uma quantidade positiva.");
+        return;
+    }
+
+    ingredients.push({ name, quantity, unit });
+    renderIngredientList();
+
+    // Limpa apenas os campos de entrada do ingrediente
+    ingredientNameInput.value = '';
+    quantityInput.value = '100';
+    unitSelect.value = 'gramas';
+}
+
+function removeIngredient(index) {
+    ingredients.splice(index, 1);
+    renderIngredientList();
+    // Esconde resultados se a lista ficar vazia
+    if (ingredients.length === 0) {
+        if(resultsSection) resultsSection.classList.add('hidden');
+        resetNutritionalDisplay();
+    }
+}
+window.removeIngredient = removeIngredient;
+window.addIngredient = addIngredient;
+
 
 // --- Inicialização ---
 
