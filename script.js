@@ -1,8 +1,8 @@
 // Variáveis de ambiente
-// ATENÇÃO: Se estiver executando este código localmente (fora do Canvas),
+// ATENÇÃO DE SEGURANÇA CRÍTICA: Se estiver executando este código localmente,
 // você DEVE inserir sua chave API da Google no lugar das aspas vazias ("").
-// Para o Canvas funcionar, ela deve ser uma string vazia.
-const apiKey = "AIzaSyATeUV4-8VkKFidO2dy2Ifl_MO40aznmmE"; // <--- Sua chave API deve ir aqui!
+// ESTA CHAVE SERÁ PÚBLICA EM QUALQUER SITE ESTÁTICO (ex: GitHub Pages).
+const apiKey = "AIzaSyATeUV4-8VkKFidO2dy2Ifl_MO40aznmmE"; // <--- SUBSTITUA POR SUA CHAVE REAL APENAS PARA TESTE LOCAL!
 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
 let ingredients = [];
@@ -103,6 +103,11 @@ window.closeModal = closeModal;
 async function fetchNutrientsWithRetry(ingredient) {
     const maxRetries = 3;
     let lastError = null;
+    
+    // Verifica se a chave foi inserida
+    if (apiKey === "" || apiKey === "SUA_CHAVE_API_VAI_AQUI") {
+        throw new Error("Chave API ausente. Por favor, insira sua chave na variável 'apiKey' no script.js.");
+    }
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
@@ -178,7 +183,11 @@ async function fetchNutrientsWithRetry(ingredient) {
 
             return { 
                 ...jsonResponse,
-                sources
+                sources,
+                // Garantir que os valores sejam numéricos após o parse
+                calories: parseFloat(jsonResponse.calories),
+                protein_g: parseFloat(jsonResponse.protein_g),
+                carbs_g: parseFloat(jsonResponse.carbs_g)
             };
 
         } catch (error) {
@@ -201,6 +210,12 @@ async function calculateTotal() {
         showModal("Atenção", "Por favor, adicione pelo menos um ingrediente para calcular a nutrição.");
         return;
     }
+    
+    if (apiKey === "" || apiKey === "SUA_CHAVE_API_VAI_AQUI") {
+        showModal("Erro de Configuração", "A chave API não foi inserida no arquivo 'script.js'. Por favor, substitua 'SUA_CHAVE_API_VAI_AQUI' pela sua chave real para testes locais.");
+        return;
+    }
+
 
     calculateButton.disabled = true;
     const originalButtonContent = calculateButton.innerHTML;
