@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nutri.App - Home</title>
+    <title>Nutri.App - Histórico</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -16,8 +16,13 @@
     <header class="bg-white shadow-md sticky top-0 z-10">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-4">
-                <!-- Título da Tela -->
-                <h1 class="text-2xl font-extrabold text-primary-dark">Home</h1>
+                <!-- Botão Voltar -->
+                <a href="index.html" class="flex items-center text-primary-dark hover:text-primary-hover transition-colors font-semibold">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Voltar
+                </a>
                 
                 <!-- Bloco de Perfil e Menu Suspenso -->
                 <div class="relative flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 transition duration-150 cursor-pointer" id="profile-container" onclick="toggleProfileMenu(event)">
@@ -39,32 +44,19 @@
                         </button>
                     </div>
                 </div>
+
             </div>
         </div>
     </header>
 
     <main class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
         
-        <!-- TELA INICIAL (HOME) -->
-        <section id="home-screen" class="p-6 bg-white rounded-xl shadow-lg transition-opacity duration-300">
-            <div class="text-center py-10">
-                <h2 class="text-4xl font-bold text-gray-800 mb-4">Bem-vindo(a) ao Nutri.App</h2>
-                <p class="text-lg text-gray-600 mb-10">Sua ferramenta completa para cálculo nutricional e acompanhamento de consumo.</p>
-                
-                <!-- Botões de Acesso Rápido -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-                    <div class="p-6 bg-green-50 rounded-lg border border-green-200 shadow-md">
-                        <h3 class="text-xl font-semibold text-green-700 mb-3">Calculadora Rápida</h3>
-                        <p class="text-gray-600 mb-4">Descubra as macros de qualquer ingrediente ou receita.</p>
-                        <a href="calculadora.html" class="inline-block w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition duration-300 shadow-lg">Calcular Agora</a>
-                    </div>
-
-                    <div class="p-6 bg-blue-50 rounded-lg border border-blue-200 shadow-md">
-                        <h3 class="text-xl font-semibold text-blue-700 mb-3">Meu Diário</h3>
-                        <p class="text-gray-600 mb-4">Acompanhe e visualize suas refeições registradas por dia.</p>
-                        <a href="historico.html" class="inline-block w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition duration-300 shadow-lg">Ver Histórico</a>
-                    </div>
-                </div>
+        <!-- TELA DE HISTÓRICO -->
+        <section id="history-screen" class="p-6 bg-white rounded-xl shadow-lg transition-opacity duration-300">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">Histórico de Consumo</h2>
+            <div id="historyList" class="space-y-8">
+                <!-- O histórico será inserido aqui pelo JS -->
+                <p id="noHistoryMessage" class="text-gray-500 italic text-center py-10">Nenhuma receita foi registrada ainda. Calcule e grave um consumo!</p>
             </div>
         </section>
 
@@ -76,13 +68,15 @@
                 <button onclick="closeModal()" class="w-full bg-primary-dark text-white py-2 rounded-lg font-bold hover:bg-primary-hover transition duration-300">Fechar</button>
             </div>
         </div>
+
     </main>
 
     <script src="script.js"></script>
     <script>
-        // Funções específicas da Home para inicialização
+        // Funções de inicialização do Histórico
         document.addEventListener('DOMContentLoaded', () => {
             renderProfile();
+            loadHistory(); // Carrega o histórico ao entrar na tela
         });
     </script>
 </body>
